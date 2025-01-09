@@ -20,6 +20,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.0-latest"),
+        .package(url: "https://github.com/narumij/swift-ac-collections.git", from: "0.1.4"),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -34,7 +35,10 @@ let package = Package(
         ),
 
         // Library that exposes a macro as part of its API, which is used in client programs.
-        .target(name: "Memoize", dependencies: ["MemoizeMacros"]),
+        .target(name: "Memoize", dependencies: [
+          "MemoizeMacros",
+          .product(name: "AcCollections", package: "swift-ac-collections"),
+        ]),
 
         // A client of the library, which is able to use the macro in its own code.
         .executableTarget(name: "MemoizeClient", dependencies: ["Memoize"]),
@@ -47,5 +51,17 @@ let package = Package(
                 .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
             ]
         ),
+        
+          .target(name: "MemoizeCache", dependencies: [
+            "MemoizeMacros",
+            .product(name: "AcCollections", package: "swift-ac-collections"),
+          ]),
+
+          .testTarget(
+              name: "MemoizeCacheTests",
+              dependencies: [
+                  "MemoizeCache"
+              ]
+          ),
     ]
 )
