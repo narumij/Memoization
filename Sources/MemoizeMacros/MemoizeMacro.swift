@@ -136,27 +136,7 @@ func returnType(_ funcDecl: FunctionDeclSyntax) -> TypeSyntax {
 }
 
 func isStaticFunction(_ functionDecl: FunctionDeclSyntax) -> Bool {
-  // 修飾子 (modifiers) を確認
-  for modifier in functionDecl.modifiers {
-    if modifier.name.text == "static" {
-      return true
-    }
-  }
-  return false
-}
-
-func isGlobalScope(functionDecl: FunctionDeclSyntax) -> Bool {
-    // 親ノードをたどって確認
-    var parent = functionDecl.parent
-    while let current = parent {
-        if current.is(SourceFileSyntax.self) {
-            // 親が SourceFileSyntax ならグローバルスコープ
-            return true
-        }
-        // 親ノードをたどる
-        parent = current.parent
-    }
-    return false
+  functionDecl.modifiers.contains { $0.name.text == "static" }
 }
 
 @main

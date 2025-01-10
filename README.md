@@ -111,7 +111,7 @@ tarai_cache.removeAll()
 
 ## 注意事項
 
-- @inlinableにはできません。必要な場合、@usableFromInlineにしてください。
+- 対象の関数を@inlinableにはできません。必要な場合、@usableFromInlineにしてください。
 
 - 辞書のキーにHashableが必須なため、Hashable適合している型のみが関数の引数に使えます。
 
