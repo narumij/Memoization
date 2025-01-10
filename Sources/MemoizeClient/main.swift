@@ -1,22 +1,22 @@
 import Memoize
 
 @Memoized(maxCount:1000)
-func tarai2(x: Int, y: Int, z: Int) -> Int {
+func tarai(x: Int, y: Int, z: Int) -> Int {
   if x <= y {
     return y
   } else {
-    return tarai2(
-      x: tarai2(x: x - 1, y: y, z: z),
-      y: tarai2(x: y - 1, y: z, z: x),
-      z: tarai2(x: z - 1, y: x, z: y))
+    return tarai(
+      x: tarai(x: x - 1, y: y, z: z),
+      y: tarai(x: y - 1, y: z, z: x),
+      z: tarai(x: z - 1, y: x, z: y))
   }
 }
 
-tarai2_cache.removeAll()
+tarai_cache.removeAll()
 
-print("Tak 20 10 0 is \(tarai2(x: 20, y: 10, z: 0))")
+print("Tak 20 10 0 is \(tarai(x: 20, y: 10, z: 0))")
 
-print(tarai2_cache.count)
+print(tarai_cache.count)
 
 class Fib {
   var one: Int { 1 }
