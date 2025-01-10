@@ -1,6 +1,6 @@
 import Memoize
 
-@Memoized(maxCount:1000)
+@Memoized(maxCount:150)
 func tarai(x: Int, y: Int, z: Int) -> Int {
   if x <= y {
     return y
@@ -12,12 +12,13 @@ func tarai(x: Int, y: Int, z: Int) -> Int {
   }
 }
 
-tarai_cache.removeAll()
+//tarai_cache.removeAll()
 
 print("Tak 20 10 0 is \(tarai(x: 20, y: 10, z: 0))")
 
-print(tarai_cache.count)
+//print(tarai_cache.count)
 
+#if false
 class Fib {
   var one: Int { 1 }
   var two: Int { 2 }
@@ -51,3 +52,4 @@ Fib2.fibonacci_cache.removeAll()
 print(Fib2.fibonacci(40)) // Output: 102_334_155
 
 print(Fib2.fibonacci_cache.count)
+#endif

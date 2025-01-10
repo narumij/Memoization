@@ -34,7 +34,7 @@ final class MemoizeTests: XCTestCase {
                 }
                 let r = body(b, c: c, d: dd)
                 if let maxCount, a_cache.count == maxCount {
-                  a_cache.remove(at: a_cache.indices.randomElement()!)
+                  a_cache.remove(at: a_cache.startIndex)
                 }
                 a_cache[args] = r
                 return r
@@ -84,7 +84,7 @@ final class MemoizeTests: XCTestCase {
                 }
                 let r = body(b, c: c, d: dd)
                 if let maxCount, a_cache.count == maxCount {
-                  a_cache.remove(at: a_cache.indices.randomElement()!)
+                  a_cache.remove(at: a_cache.startIndex)
                 }
                 a_cache[args] = r
                 return r

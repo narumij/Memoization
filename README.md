@@ -115,6 +115,8 @@ tarai_cache.removeAll()
 
 - 辞書のキーにHashableが必須なため、Hashable適合している型のみが関数の引数に使えます。
 
+- 計測したところ、サイズの維持をする場合、とても遅いです。
+
 ## ライセンス
 
 このライブラリは [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) に基づいて配布しています。  
