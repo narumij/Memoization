@@ -11,6 +11,8 @@ import MemoizeMacros
 let testMacros: [String: Macro.Type] = [
     "stringify": StringifyMacro.self,
     "Memoize": MemoizeBodyMacro.self,
+    "AddMemoized_peer": PeerValueWithSuffixNameMacro.self,
+    "AddMemoized_body": MemoizeBodyMacro2.self,
 ]
 #endif
 
@@ -157,5 +159,89 @@ final class MemoizeTests: XCTestCase {
     #else
       throw XCTSkip("macros are only supported when running tests for the host platform")
     #endif
+  }
+  
+//  func testPeerMacro() throws {
+//      #if canImport(MemoizeMacros)
+//      assertMacroExpansion(
+//          """
+//          @AddMemoized_peer
+//          func a(_ b: Int, c: Int, d dd: Int) -> Int {
+//            return 0
+//          }
+//          """,
+//          expandedSource: """
+//          func a(_ b: Int, c: Int, d dd: Int) -> Int {
+//            return 0
+//          }
+//          
+//          var _a_cache: [_Func_a_params_Int_c_Int_d_Int: Int] = [:]
+//          
+//          struct _Func_a_params_Int_c_Int_d_Int: Hashable {
+//            init(_ b: Int, c: Int, d dd: Int) {
+//              self.b = b
+//              self.c = c
+//              self.d = dd
+//            }
+//            let b: Int
+//            let c: Int
+//            let d: Int
+//          }
+//          """,
+//          macros: testMacros
+//      )
+//      #else
+//      throw XCTSkip("macros are only supported when running tests for the host platform")
+//      #endif
+//  }
+  
+  func testBodyMacro() throws {
+      #if canImport(MemoizeMacros)
+      assertMacroExpansion(
+          """
+          @AddMemoized_body
+          func a(_ b: Int, c: Int, d dd: Int) -> Int {
+            return 0
+          }
+          """,
+          expandedSource: """
+          func a(_ b: Int, c: Int, d dd: Int) -> Int {
+              let maxCount: Int? = nil
+              func a(_ b: Int, c: Int, d dd: Int) -> Int {
+                let args = a_parameters(b, c: c, d: dd)
+                if let result = a_cache[args] {
+                  return result
+                }
+                let r = body(b, c: c, d: dd)
+                if let maxCount, a_cache.count == maxCount {
+                  a_cache.remove(at: a_cache.indices.randomElement()!)
+                }
+                a_cache[args] = r
+                return r
+              }
+              func body(_ b: Int, c: Int, d dd: Int) -> Int {
+                return 0
+              }
+              return a(b, c: c, d: dd)
+          }
+          
+          nonisolated(unsafe) var a_cache: [a_parameters: Int] = [:]
+          
+          struct a_parameters: Hashable {
+            init(_ b: Int, c: Int, d dd: Int) {
+              self.b = b
+              self.c = c
+              self.d = dd
+            }
+            let b: Int
+            let c: Int
+            let d: Int
+          }
+          """,
+          macros: testMacros
+      )
+      #else
+      throw XCTSkip("macros are only supported when running tests for the host platform")
+      #endif
   }
 }

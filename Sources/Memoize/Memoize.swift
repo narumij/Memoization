@@ -12,3 +12,8 @@ public macro stringify<T>(_ value: T) -> (T, String) = #externalMacro(module: "M
 
 @attached(body)
 public macro Memoize(maxCount: Int = Int.max) = #externalMacro(module: "MemoizeMacros", type: "MemoizeBodyMacro")
+
+@attached(body)
+@attached(peer, names: suffixed(_cache), suffixed(_parameters))
+public macro AddCache(maxCount: Int = Int.max) = #externalMacro(module: "MemoizeMacros", type: "MemoizeBodyMacro2")
+
