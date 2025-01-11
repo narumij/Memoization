@@ -1,8 +1,9 @@
 import Memoize
 
 #if true
-@Cache(maxCount:150)
-//@Memoized
+//@Cache(maxCount:150)
+//@Cache
+@LRUCache(maxCount: 150)
 func tarai(x: Int, y: Int, z: Int) -> Int {
   if x <= y {
     return y
@@ -18,7 +19,7 @@ func tarai(x: Int, y: Int, z: Int) -> Int {
 
 print("Tak 20 10 0 is \(tarai(x: 20, y: 10, z: 0))")
 
-print(tarai_cache.withLock(\.info))
+//print(tarai_cache.withLock(\.info))
 
 #if false
 class Fib {

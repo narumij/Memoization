@@ -26,14 +26,16 @@ final class MemoizeTests: XCTestCase {
         """,
         expandedSource: """
           func a(_ b: Int, c: Int, d dd: Int) -> Int {
-              let maxCount: Int? = nil
               func a(_ b: Int, c: Int, d dd: Int) -> Int {
                 let args = ___MemoizationCache___a.Parameters(b, c: c, d: dd)
-                if let result = a_cache.withLock({ $0[args] }) {
+                if let result = a_cache.withLock({ $0 [args]
+                    }) {
                   return result
                 }
                 let r = ___body(b, c: c, d: dd)
-                a_cache.withLock { $0[args] = r }
+                a_cache.withLock {
+                    $0 [args] = r
+                }
                 return r
               }
               func ___body(_ b: Int, c: Int, d dd: Int) -> Int {
@@ -81,14 +83,16 @@ final class MemoizeTests: XCTestCase {
         """,
         expandedSource: """
           static func a(_ b: Int, c: Int, d dd: Int) -> Int {
-              let maxCount: Int? = nil
               func a(_ b: Int, c: Int, d dd: Int) -> Int {
                 let args = ___MemoizationCache___a.Parameters(b, c: c, d: dd)
-                if let result = a_cache.withLock({ $0[args] }) {
+                if let result = a_cache.withLock({ $0 [args]
+                    }) {
                   return result
                 }
                 let r = ___body(b, c: c, d: dd)
-                a_cache.withLock { $0[args] = r }
+                a_cache.withLock {
+                    $0 [args] = r
+                }
                 return r
               }
               func ___body(_ b: Int, c: Int, d dd: Int) -> Int {
@@ -136,14 +140,16 @@ final class MemoizeTests: XCTestCase {
         """,
         expandedSource: """
           func a(_ b: Int, c: Int, d dd: Int) -> Int {
-              let maxCount: Int? = 999
               func a(_ b: Int, c: Int, d dd: Int) -> Int {
                 let args = (b, c: c, d: dd)
-                if let result = a_cache.withLock({ $0[args] }) {
+                if let result = a_cache.withLock({ $0 [args]
+                    }) {
                   return result
                 }
                 let r = ___body(b, c: c, d: dd)
-                a_cache.withLock { $0[args] = r }
+                a_cache.withLock {
+                    $0 [args] = r
+                }
                 return r
               }
               func ___body(_ b: Int, c: Int, d dd: Int) -> Int {

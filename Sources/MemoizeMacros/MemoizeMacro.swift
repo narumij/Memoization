@@ -75,7 +75,6 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
 
     return [
       """
-      let maxCount: Int? = \(raw: maxCount ?? "nil")
       \(functionBody(funcDecl, initialize: maxCount == nil ? "\(cacheTypeName(funcDecl)).Parameters" : ""))
       """
     ]
@@ -219,7 +218,7 @@ func functionBody(_ funcDecl: FunctionDeclSyntax, initialize: String) -> CodeBlo
 
   let cache: TokenSyntax = cacheName(funcDecl)
   let params = callParameters(funcDecl)
-
+  
   return """
     func \(funcDecl.name)\(funcDecl.signature){
       let args = \(raw: initialize)(\(raw: params))

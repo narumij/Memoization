@@ -6,6 +6,10 @@
 
 @attached(body)
 @attached(peer, names: suffixed(_cache), prefixed(___MemoizationCache___))
+public macro LRUCache(maxCount: Int) = #externalMacro(module: "MemoizeMacros", type: "MemoizeMacro")
+
+@attached(body)
+@attached(peer, names: suffixed(_cache), prefixed(___MemoizationCache___))
 public macro Cache(maxCount: Int = Int.max) = #externalMacro(module: "MemoizeMacros", type: "MemoizeMacro")
 
 @attached(body)
