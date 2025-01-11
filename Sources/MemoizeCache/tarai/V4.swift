@@ -17,7 +17,7 @@ enum Memoized_Ver4 {
     typealias Return = Int
     static func value_comp(_ a: Parameter, _ b: Parameter) -> Bool { a < b }
 
-    var memo: Tree = .init()
+    var memo: Base = .init()
 
     func tarai(x: Int, y: Int, z: Int) -> Int {
 

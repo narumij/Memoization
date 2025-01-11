@@ -6,7 +6,7 @@ import CompilerPluginSupport
 
 let package = Package(
     name: "Memoize",
-    platforms: [.macOS(.v10_15), .iOS(.v13), .tvOS(.v13), .watchOS(.v6), .macCatalyst(.v13)],
+    platforms: [.macOS(.v15), .iOS(.v13), .tvOS(.v13), .watchOS(.v6), .macCatalyst(.v13)],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
@@ -21,7 +21,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.0-latest"),
         .package(url: "https://github.com/narumij/swift-ac-collections.git",
-                 revision: "e0b9448c7794afa433df7706d2cf54f0478d76ec"),
+                 revision: "be774c6cb44c4af693232e7c513c428f851ea7ac"),
 //                 from: "0.1.5"),
     ],
     targets: [

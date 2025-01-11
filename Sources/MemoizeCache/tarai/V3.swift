@@ -13,7 +13,7 @@ struct Memoized_Ver3 {
       @inlinable @inline(__always)
       static func value_comp(_ a: Parameter, _ b: Parameter) -> Bool { a < b }
     }
-    var memo: Memoize.Tree = .init()
+    var memo: Memoize.Base = .init()
   }
 
   // ユーザーコードと衝突しない名前を生成する工夫が必要そう

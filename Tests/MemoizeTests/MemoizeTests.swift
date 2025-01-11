@@ -29,11 +29,11 @@ final class MemoizeTests: XCTestCase {
               let maxCount: Int? = nil
               func a(_ b: Int, c: Int, d dd: Int) -> Int {
                 let args = ___MemoizationCache___a.Parameters(b, c: c, d: dd)
-                if let result = a_cache[args] {
+                if let result = a_cache.withLock({ $0[args] }) {
                   return result
                 }
                 let r = ___body(b, c: c, d: dd)
-                a_cache[args] = r
+                a_cache.withLock { $0[args] = r }
                 return r
               }
               func ___body(_ b: Int, c: Int, d dd: Int) -> Int {
@@ -44,12 +44,12 @@ final class MemoizeTests: XCTestCase {
           
           enum ___MemoizationCache___a {
             @usableFromInline struct Parameters: Hashable {
-              init(_ b: Int, c: Int, d dd: Int) {
-                self.b = b
-            self.c = c
-            self.d = dd
-              }
-              @usableFromInline let b: Int
+            init(_ b: Int, c: Int, d dd: Int) {
+              self.b = b
+              self.c = c
+              self.d = dd
+            }
+            @usableFromInline let b: Int
             @usableFromInline let c: Int
             @usableFromInline let d: Int
             }
@@ -61,7 +61,7 @@ final class MemoizeTests: XCTestCase {
             }
           }
           
-          nonisolated(unsafe) var a_cache = ___MemoizationCache___a.create()
+          let a_cache = Mutex(___MemoizationCache___a.create())
           """,
         macros: testMacros
       )
@@ -84,11 +84,11 @@ final class MemoizeTests: XCTestCase {
               let maxCount: Int? = nil
               func a(_ b: Int, c: Int, d dd: Int) -> Int {
                 let args = ___MemoizationCache___a.Parameters(b, c: c, d: dd)
-                if let result = a_cache[args] {
+                if let result = a_cache.withLock({ $0[args] }) {
                   return result
                 }
                 let r = ___body(b, c: c, d: dd)
-                a_cache[args] = r
+                a_cache.withLock { $0[args] = r }
                 return r
               }
               func ___body(_ b: Int, c: Int, d dd: Int) -> Int {
@@ -99,12 +99,12 @@ final class MemoizeTests: XCTestCase {
 
           enum ___MemoizationCache___a {
             @usableFromInline struct Parameters: Hashable {
-              init(_ b: Int, c: Int, d dd: Int) {
-                self.b = b
-            self.c = c
-            self.d = dd
-              }
-              @usableFromInline let b: Int
+            init(_ b: Int, c: Int, d dd: Int) {
+              self.b = b
+              self.c = c
+              self.d = dd
+            }
+            @usableFromInline let b: Int
             @usableFromInline let c: Int
             @usableFromInline let d: Int
             }
@@ -116,7 +116,7 @@ final class MemoizeTests: XCTestCase {
             }
           }
           
-          nonisolated(unsafe) static var a_cache = ___MemoizationCache___a.create()
+          static let a_cache = Mutex(___MemoizationCache___a.create())
           """,
         macros: testMacros
       )
@@ -138,12 +138,12 @@ final class MemoizeTests: XCTestCase {
           func a(_ b: Int, c: Int, d dd: Int) -> Int {
               let maxCount: Int? = 999
               func a(_ b: Int, c: Int, d dd: Int) -> Int {
-                let args = ___MemoizationCache___a.Parameters(b, c: c, d: dd)
-                if let result = a_cache[args] {
+                let args = (b, c: c, d: dd)
+                if let result = a_cache.withLock({ $0[args] }) {
                   return result
                 }
                 let r = ___body(b, c: c, d: dd)
-                a_cache[args] = r
+                a_cache.withLock { $0[args] = r }
                 return r
               }
               func ___body(_ b: Int, c: Int, d dd: Int) -> Int {
@@ -155,7 +155,7 @@ final class MemoizeTests: XCTestCase {
           enum ___MemoizationCache___a: _MemoizationProtocol {
             @usableFromInline typealias Parameters = (Int, c: Int, d: Int)
             @usableFromInline typealias Return = Int
-            @usableFromInline typealias Instance = Tree
+            @usableFromInline typealias Instance = LRU
             @inlinable @inline(__always)
             static func value_comp(_ a: Parameters, _ b: Parameters) -> Bool {
               a < b
@@ -166,7 +166,7 @@ final class MemoizeTests: XCTestCase {
             }
           }
           
-          nonisolated(unsafe) var a_cache = ___MemoizationCache___a.create()
+          let a_cache = Mutex(___MemoizationCache___a.create())
           """,
         macros: testMacros
       )

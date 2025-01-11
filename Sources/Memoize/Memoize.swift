@@ -2,6 +2,7 @@
 // https://docs.swift.org/swift-book
 
 @_exported import RedBlackTreeModule
+@_exported import Synchronization
 
 @attached(body)
 @attached(peer, names: suffixed(_cache), prefixed(___MemoizationCache___))

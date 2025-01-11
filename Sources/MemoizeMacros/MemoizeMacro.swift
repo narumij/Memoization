@@ -37,7 +37,7 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
       \(treeCache(funcDecl, maxCount: maxCount))
       """,
       """
-      nonisolated(unsafe) \(raw: static_modifier)var \(cacheName(funcDecl)) = \(cacheTypeName(funcDecl)).create()
+      \(raw: static_modifier)let \(cacheName(funcDecl)) = Mutex(\(cacheTypeName(funcDecl)).create())
       """,
       ]
     } else {
@@ -46,7 +46,7 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
       \(hashCache(funcDecl))
       """,
       """
-      nonisolated(unsafe) \(raw: static_modifier)var \(cacheName(funcDecl)) = \(cacheTypeName(funcDecl)).create()
+      \(raw: static_modifier)let \(cacheName(funcDecl)) = Mutex(\(cacheTypeName(funcDecl)).create())
       """,
       ]
     }
@@ -62,12 +62,12 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
       return []
     }
 
-    var limit: String?
+    var maxCount: String?
     let arguments = node.arguments?.as(LabeledExprListSyntax.self) ?? []
     for argument in arguments {
       if let label = argument.label?.text, label == "maxCount" {
         if let valueExpr = argument.expression.as(IntegerLiteralExprSyntax.self) {
-          limit = valueExpr.literal.text
+          maxCount = valueExpr.literal.text
           break
         }
       }
@@ -75,8 +75,8 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
 
     return [
       """
-      let maxCount: Int? = \(raw: limit ?? "nil")
-      \(functionBody(funcDecl, initialize: ""))
+      let maxCount: Int? = \(raw: maxCount ?? "nil")
+      \(functionBody(funcDecl, initialize: maxCount == nil ? "\(cacheTypeName(funcDecl)).Parameters" : ""))
       """
     ]
   }
@@ -223,11 +223,11 @@ func functionBody(_ funcDecl: FunctionDeclSyntax, initialize: String) -> CodeBlo
   return """
     func \(funcDecl.name)\(funcDecl.signature){
       let args = \(raw: initialize)(\(raw: params))
-      if let result = \(cache)[args] {
+      if let result = \(cache).withLock({ $0[args] }) {
         return result
       }
       let r = ___body(\(raw: params))
-      \(cache)[args] = r
+      \(cache).withLock { $0[args] = r }
       return r
     }
     func ___body\(funcDecl.signature)\(funcDecl.body)

@@ -14,8 +14,8 @@ enum Memoized_Ver2 {
         @inlinable @inline(__always)
         static func value_comp(_ a: Parameter, _ b: Parameter) -> Bool { a < b }
       }
-      nonisolated(unsafe) static var cache: Memoize.Tree = .init()
-      var memo: Memoize.Tree {
+      nonisolated(unsafe) static var cache: Memoize.Base = .init()
+      var memo: Memoize.Base {
         get { Self.cache }
         _modify { yield &Self.cache }
       }
@@ -28,7 +28,7 @@ enum Memoized_Ver2 {
         @inlinable @inline(__always)
         static func value_comp(_ a: Parameter, _ b: Parameter) -> Bool { a < b }
       }
-      var memo: Memoize.Tree = .init()
+      var memo: Memoize.Base = .init()
     }
 
     let cache = Cache()

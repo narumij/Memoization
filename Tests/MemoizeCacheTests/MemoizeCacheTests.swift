@@ -29,7 +29,7 @@ final class MemoizeCacheTests: XCTestCase {
     }
 
     func testMaximum() throws {
-      var cache = _MemoizeCacheBase<TestKey, Int>(minimumCapacity: 0, maximumCapacity: 100)
+      var cache = _MemoizeCacheLRU<TestKey, Int>(minimumCapacity: 0, maximumCapacity: 100)
       XCTAssertEqual(cache._tree.count, 0)
       XCTAssertEqual(cache._tree.capacity, 0)
       var finalCapacity: Int? = nil
@@ -47,7 +47,7 @@ final class MemoizeCacheTests: XCTestCase {
   #endif
   
   func testMaximum2() throws {
-    var cache = _MemoizeCacheBase<TestKey, Int>(minimumCapacity: 0, maximumCapacity: 5)
+    var cache = _MemoizeCacheLRU<TestKey, Int>(minimumCapacity: 0, maximumCapacity: 5)
     cache[0] = 0
     XCTAssertEqual(cache[0], 0)
     cache[1] = 1
@@ -65,13 +65,14 @@ final class MemoizeCacheTests: XCTestCase {
       XCTAssertEqual(cache[0], 0)
     }
     cache[i] = i
-    XCTAssertNil(cache[0]) // 1番古いモノが消える
-    XCTAssertEqual(cache[1], 1)
+    XCTAssertEqual(cache[0], 0) // 1番古いモノが消える
+    XCTAssertNil(cache[1])
     XCTAssertEqual(cache[i], i) // 新しいモノが登録されている
     i += 1
     cache[i] = i
-    XCTAssertNil(cache[0]) // 1番古いモノはすでに消えている
-    XCTAssertNil(cache[1]) // 2番目に古いモノが消える
+    XCTAssertEqual(cache[0], 0) // 1番古いモノはすでに消えている
+    XCTAssertNil(cache[1])
+    XCTAssertNil(cache[2]) // 2番目に古いモノが消える
     XCTAssertEqual(cache[i], i) // 新しいモノが登録されている
     i += 1
   }
