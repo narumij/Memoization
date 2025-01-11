@@ -1,6 +1,8 @@
 import Memoize
 
-@Memoized(maxCount:150)
+#if true
+@Cache(maxCount:150)
+//@Memoized
 func tarai(x: Int, y: Int, z: Int) -> Int {
   if x <= y {
     return y
@@ -52,4 +54,6 @@ Fib2.fibonacci_cache.removeAll()
 print(Fib2.fibonacci(40)) // Output: 102_334_155
 
 print(Fib2.fibonacci_cache.count)
+#endif
+
 #endif

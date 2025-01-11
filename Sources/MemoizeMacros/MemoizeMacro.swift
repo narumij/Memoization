@@ -18,14 +18,38 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
     let isStatic = isStaticFunction(funcDecl)
     let static_modifier = isStatic ? "static" + " " : ""
 
-    return [
+    var maxCount: String?
+
+    let arguments = node.arguments?.as(LabeledExprListSyntax.self) ?? []
+
+    for argument in arguments {
+      if let label = argument.label?.text, label == "maxCount" {
+        if let valueExpr = argument.expression.as(IntegerLiteralExprSyntax.self) {
+          maxCount = valueExpr.literal.text
+          break
+        }
+      }
+    }
+    
+    if let maxCount {
+      return [
       """
-      nonisolated(unsafe) \(raw: static_modifier)var \(cacheName(funcDecl)): [\(paramsType(funcDecl)): \(returnType(funcDecl))] = [:]
+      \(treeCache(funcDecl, maxCount: maxCount))
       """,
       """
-      \(structParameters(paramsType(funcDecl), funcDecl.signature.parameterClause))
+      nonisolated(unsafe) \(raw: static_modifier)var \(cacheName(funcDecl)) = \(cacheTypeName(funcDecl)).create()
       """,
-    ]
+      ]
+    } else {
+      return [
+      """
+      \(hashCache(funcDecl))
+      """,
+      """
+      nonisolated(unsafe) \(raw: static_modifier)var \(cacheName(funcDecl)) = \(cacheTypeName(funcDecl)).create()
+      """,
+      ]
+    }
   }
 
   public static func expansion(
@@ -52,7 +76,7 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
     return [
       """
       let maxCount: Int? = \(raw: limit ?? "nil")
-      \(functionBodyWithLimit(paramsType(funcDecl).description,cacheName(funcDecl).text, "maxCount", funcDecl))
+      \(functionBody(funcDecl, initialize: ""))
       """
     ]
   }
@@ -70,18 +94,29 @@ public struct MemoizeMacro2: BodyMacro {
       return []
     }
 
+    var limit: String?
+    let arguments = node.arguments?.as(LabeledExprListSyntax.self) ?? []
+    for argument in arguments {
+      if let label = argument.label?.text, label == "maxCount" {
+        if let valueExpr = argument.expression.as(IntegerLiteralExprSyntax.self) {
+          limit = valueExpr.literal.text
+          break
+        }
+      }
+    }
+
     return [
       """
       \(structParameters(paramsType(funcDecl), funcDecl.signature.parameterClause))
       var \(cacheName(funcDecl)): [\(paramsType(funcDecl)): \(returnType(funcDecl))] = [:]
-      \(functionBody(funcDecl))
+      \(functionBodyWithLimit(paramsType(funcDecl).description, cacheName(funcDecl).text, limit, funcDecl))
       """
     ]
   }
 }
 
 func functionBodyWithLimit(
-  _ parameters: String, _ storage: String, _ maxCount: String, _ funcDecl: FunctionDeclSyntax
+  _ parameters: String, _ storage: String, _ maxCount: String?, _ funcDecl: FunctionDeclSyntax
 ) -> CodeBlockItemSyntax {
   let params = funcDecl.signature.parameterClause.parameters.map {
     switch ($0.firstName.tokenKind, $0.firstName, $0.parameterName) {
@@ -95,13 +130,15 @@ func functionBodyWithLimit(
   }.joined(separator: ", ")
   return """
     func \(funcDecl.name)\(funcDecl.signature){
+      let maxCount: Int? = \(raw: maxCount ?? "nil")
       let args = \(raw: parameters)(\(raw: params))
       if let result = \(raw: storage)[args] {
         return result
       }
       let r = body(\(raw: params))
-      if let \(raw: maxCount), \(raw: storage).count == \(raw: maxCount) {
-        \(raw: storage).remove(at: \(raw: storage).startIndex)
+      if let maxCount, \(raw: storage).count == maxCount {
+        let i = \(raw: storage).startIndex
+        \(raw: storage).remove(at: i)
       }
       \(raw: storage)[args] = r
       return r
@@ -129,9 +166,9 @@ func structParameters(_ name: TypeSyntax, _ parameterClause: FunctionParameterCl
   let members = parameterClause.parameters.map {
     switch ($0.firstName.tokenKind, $0.firstName, $0.parameterName, $0.type) {
     case (.wildcard, _, .some(let parameterName), let type):
-      return "let \(parameterName): \(type)"
+      return "@usableFromInline let \(parameterName): \(type)"
     case (_, let firstName, _, let type):
-      return "let \(firstName.trimmed): \(type)"
+      return "@usableFromInline let \(firstName.trimmed): \(type)"
     }
   }.joined(separator: "\n")
 
@@ -145,23 +182,55 @@ func structParameters(_ name: TypeSyntax, _ parameterClause: FunctionParameterCl
     """
 }
 
-func functionBody(_ funcDecl: FunctionDeclSyntax) -> CodeBlockItemSyntax {
-  
-  let parameters: TypeSyntax = paramsType(funcDecl)
+func hashCache(_ funcDecl: FunctionDeclSyntax) -> CodeBlockItemSyntax {
+  return """
+    enum \(cacheTypeName(funcDecl)) {
+      @usableFromInline \(structParameters("Parameters", funcDecl.signature.parameterClause))
+      @usableFromInline typealias Return = \(returnType(funcDecl))
+      @usableFromInline typealias Instance = [Parameters:Return]
+      @inlinable @inline(__always)
+      static func create() -> Instance {
+        [:]
+      }
+    }
+    """
+}
+
+func treeCache(_ funcDecl: FunctionDeclSyntax, maxCount limit: String?) -> CodeBlockItemSyntax {
+  let params = typeParameter(funcDecl)
+  return """
+    enum \(cacheTypeName(funcDecl)): _MemoizationProtocol {
+      @usableFromInline typealias Parameters = (\(raw: params))
+      @usableFromInline typealias Return = \(returnType(funcDecl))
+      @usableFromInline typealias Instance = LRU
+      @inlinable @inline(__always)
+      static func value_comp(_ a: Parameters, _ b: Parameters) -> Bool {
+        a < b
+      }
+      @inlinable @inline(__always)
+      static func create() -> Instance {
+        .init(maximumCapacity: \(raw: limit ?? "Int.max"))
+      }
+    }
+    """
+}
+
+func functionBody(_ funcDecl: FunctionDeclSyntax, initialize: String) -> CodeBlockItemSyntax {
+
   let cache: TokenSyntax = cacheName(funcDecl)
   let params = callParameters(funcDecl)
 
   return """
     func \(funcDecl.name)\(funcDecl.signature){
-      let args = \(parameters)(\(raw: params))
+      let args = \(raw: initialize)(\(raw: params))
       if let result = \(cache)[args] {
         return result
       }
-      let r = body(\(raw: params))
+      let r = ___body(\(raw: params))
       \(cache)[args] = r
       return r
     }
-    func body\(funcDecl.signature)\(funcDecl.body)
+    func ___body\(funcDecl.signature)\(funcDecl.body)
     return \(raw: funcDecl.name)(\(raw: params))
     """
 }
@@ -177,6 +246,21 @@ func callParameters(_ funcDecl: FunctionDeclSyntax) -> String {
       fatalError()
     }
   }.joined(separator: ", ")
+}
+
+func typeParameter(_ funcDecl: FunctionDeclSyntax) -> String {
+  funcDecl.signature.parameterClause.parameters.map {
+    switch ($0.firstName.tokenKind, $0.firstName, $0.type) {
+    case (.wildcard,_,let type):
+      return "\(type)"
+    case (_,let firstName,let type):
+      return "\(firstName.trimmed): \(type)"
+    }
+  }.joined(separator: ", ")
+}
+
+func cacheTypeName(_ funcDecl: FunctionDeclSyntax) -> TokenSyntax {
+  "___MemoizationCache___\(raw: funcDecl.name.text)"
 }
 
 func cacheName(_ funcDecl: FunctionDeclSyntax) -> TokenSyntax {

@@ -28,35 +28,40 @@ final class MemoizeTests: XCTestCase {
           func a(_ b: Int, c: Int, d dd: Int) -> Int {
               let maxCount: Int? = nil
               func a(_ b: Int, c: Int, d dd: Int) -> Int {
-                let args = a_parameters(b, c: c, d: dd)
+                let args = ___MemoizationCache___a.Parameters(b, c: c, d: dd)
                 if let result = a_cache[args] {
                   return result
                 }
-                let r = body(b, c: c, d: dd)
-                if let maxCount, a_cache.count == maxCount {
-                  a_cache.remove(at: a_cache.startIndex)
-                }
+                let r = ___body(b, c: c, d: dd)
                 a_cache[args] = r
                 return r
               }
-              func body(_ b: Int, c: Int, d dd: Int) -> Int {
+              func ___body(_ b: Int, c: Int, d dd: Int) -> Int {
                 return 0
               }
               return a(b, c: c, d: dd)
           }
-
-          nonisolated(unsafe) var a_cache: [a_parameters: Int] = [:]
-
-          struct a_parameters: Hashable {
-            init(_ b: Int, c: Int, d dd: Int) {
-              self.b = b
-              self.c = c
-              self.d = dd
+          
+          enum ___MemoizationCache___a {
+            @usableFromInline struct Parameters: Hashable {
+              init(_ b: Int, c: Int, d dd: Int) {
+                self.b = b
+            self.c = c
+            self.d = dd
+              }
+              @usableFromInline let b: Int
+            @usableFromInline let c: Int
+            @usableFromInline let d: Int
             }
-            let b: Int
-            let c: Int
-            let d: Int
+            @usableFromInline typealias Return = Int
+            @usableFromInline typealias Instance = [Parameters: Return]
+            @inlinable @inline(__always)
+            static func create() -> Instance {
+              [:]
+            }
           }
+          
+          nonisolated(unsafe) var a_cache = ___MemoizationCache___a.create()
           """,
         macros: testMacros
       )
@@ -78,35 +83,90 @@ final class MemoizeTests: XCTestCase {
           static func a(_ b: Int, c: Int, d dd: Int) -> Int {
               let maxCount: Int? = nil
               func a(_ b: Int, c: Int, d dd: Int) -> Int {
-                let args = a_parameters(b, c: c, d: dd)
+                let args = ___MemoizationCache___a.Parameters(b, c: c, d: dd)
                 if let result = a_cache[args] {
                   return result
                 }
-                let r = body(b, c: c, d: dd)
-                if let maxCount, a_cache.count == maxCount {
-                  a_cache.remove(at: a_cache.startIndex)
-                }
+                let r = ___body(b, c: c, d: dd)
                 a_cache[args] = r
                 return r
               }
-              func body(_ b: Int, c: Int, d dd: Int) -> Int {
+              func ___body(_ b: Int, c: Int, d dd: Int) -> Int {
                 return 0
               }
               return a(b, c: c, d: dd)
           }
 
-          nonisolated(unsafe) static var a_cache: [a_parameters: Int] = [:]
-
-          struct a_parameters: Hashable {
-            init(_ b: Int, c: Int, d dd: Int) {
-              self.b = b
-              self.c = c
-              self.d = dd
+          enum ___MemoizationCache___a {
+            @usableFromInline struct Parameters: Hashable {
+              init(_ b: Int, c: Int, d dd: Int) {
+                self.b = b
+            self.c = c
+            self.d = dd
+              }
+              @usableFromInline let b: Int
+            @usableFromInline let c: Int
+            @usableFromInline let d: Int
             }
-            let b: Int
-            let c: Int
-            let d: Int
+            @usableFromInline typealias Return = Int
+            @usableFromInline typealias Instance = [Parameters: Return]
+            @inlinable @inline(__always)
+            static func create() -> Instance {
+              [:]
+            }
           }
+          
+          nonisolated(unsafe) static var a_cache = ___MemoizationCache___a.create()
+          """,
+        macros: testMacros
+      )
+    #else
+      throw XCTSkip("macros are only supported when running tests for the host platform")
+    #endif
+  }
+  
+  func testMacroWithMaxCount() throws {
+    #if canImport(MemoizeMacros)
+      assertMacroExpansion(
+        """
+        @Memoized(maxCount: 999)
+        func a(_ b: Int, c: Int, d dd: Int) -> Int {
+          return 0
+        }
+        """,
+        expandedSource: """
+          func a(_ b: Int, c: Int, d dd: Int) -> Int {
+              let maxCount: Int? = 999
+              func a(_ b: Int, c: Int, d dd: Int) -> Int {
+                let args = ___MemoizationCache___a.Parameters(b, c: c, d: dd)
+                if let result = a_cache[args] {
+                  return result
+                }
+                let r = ___body(b, c: c, d: dd)
+                a_cache[args] = r
+                return r
+              }
+              func ___body(_ b: Int, c: Int, d dd: Int) -> Int {
+                return 0
+              }
+              return a(b, c: c, d: dd)
+          }
+          
+          enum ___MemoizationCache___a: _MemoizationProtocol {
+            @usableFromInline typealias Parameters = (Int, c: Int, d: Int)
+            @usableFromInline typealias Return = Int
+            @usableFromInline typealias Instance = Tree
+            @inlinable @inline(__always)
+            static func value_comp(_ a: Parameters, _ b: Parameters) -> Bool {
+              a < b
+            }
+            @inlinable @inline(__always)
+            static func create() -> Instance {
+              .init(maximumCapacity: 999)
+            }
+          }
+          
+          nonisolated(unsafe) var a_cache = ___MemoizationCache___a.create()
           """,
         macros: testMacros
       )
