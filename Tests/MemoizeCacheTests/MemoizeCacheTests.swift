@@ -29,7 +29,7 @@ final class MemoizeCacheTests: XCTestCase {
     }
 
     func testMaximum() throws {
-      var cache = _MemoizeCacheLRU<TestKey, Int>(minimumCapacity: 0, maximumCapacity: 100)
+      var cache = _MemoizeCacheLRU<TestKey, Int>(minimumCapacity: 0, maxCount: 100)
       XCTAssertEqual(cache._tree.count, 0)
       XCTAssertEqual(cache._tree.capacity, 0)
       var finalCapacity: Int? = nil
@@ -47,7 +47,7 @@ final class MemoizeCacheTests: XCTestCase {
   #endif
   
   func testMaximum2() throws {
-    var cache = _MemoizeCacheLRU<TestKey, Int>(minimumCapacity: 0, maximumCapacity: 5)
+    var cache = _MemoizeCacheLRU<TestKey, Int>(minimumCapacity: 0, maxCount: 5)
     cache[0] = 0
     XCTAssertEqual(cache[0], 0)
     cache[1] = 1

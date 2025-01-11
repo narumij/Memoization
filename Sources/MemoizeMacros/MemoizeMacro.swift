@@ -15,41 +15,40 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
       return []
     }
 
-    let isStatic = isStaticFunction(funcDecl)
-    let static_modifier = isStatic ? "static" + " " : ""
-
-    var maxCount: String?
-
-    let arguments = node.arguments?.as(LabeledExprListSyntax.self) ?? []
-
-    for argument in arguments {
-      if let label = argument.label?.text, label == "maxCount" {
-        if let valueExpr = argument.expression.as(IntegerLiteralExprSyntax.self) {
-          maxCount = valueExpr.literal.text
-          break
-        }
-      }
-    }
+    let maxCount: String? = maxCount(node)
+    
+    var result: [DeclSyntax] = []
     
     if let maxCount {
-      return [
+      result.append(
       """
       \(treeCache(funcDecl, maxCount: maxCount))
-      """,
-      """
-      \(raw: static_modifier)let \(cacheName(funcDecl)) = Mutex(\(cacheTypeName(funcDecl)).create())
-      """,
-      ]
+      """)
     } else {
-      return [
+      result.append(
       """
       \(hashCache(funcDecl))
-      """,
-      """
-      \(raw: static_modifier)let \(cacheName(funcDecl)) = Mutex(\(cacheTypeName(funcDecl)).create())
-      """,
-      ]
+      """)
     }
+    
+    if context.lexicalContext == [] {
+      result.append(
+      """
+      let \(cacheName(funcDecl)) = Mutex(\(cacheTypeName(funcDecl)).create())
+      """)
+    } else if isStaticFunction(funcDecl) {
+      result.append(
+      """
+      static let \(cacheName(funcDecl)) = Mutex(\(cacheTypeName(funcDecl)).create())
+      """)
+    } else {
+      result.append(
+      """
+      var \(cacheName(funcDecl)) = \(cacheTypeName(funcDecl)).create()
+      """)
+    }
+    
+    return result
   }
 
   public static func expansion(
@@ -62,22 +61,23 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
       return []
     }
 
-    var maxCount: String?
-    let arguments = node.arguments?.as(LabeledExprListSyntax.self) ?? []
-    for argument in arguments {
-      if let label = argument.label?.text, label == "maxCount" {
-        if let valueExpr = argument.expression.as(IntegerLiteralExprSyntax.self) {
-          maxCount = valueExpr.literal.text
-          break
-        }
-      }
+    let maxCount: String? = maxCount(node)
+    
+    let initialize = maxCount == nil ? "\(cacheTypeName(funcDecl)).Parameters" : ""
+    
+    if isStaticFunction(funcDecl) || context.lexicalContext == [] {
+      return [
+      """
+      \(functionBodyWithMutex(funcDecl, initialize: initialize))
+      """
+      ]
+    } else {
+      return [
+      """
+      \(functionBody(funcDecl, initialize: initialize))
+      """
+      ]
     }
-
-    return [
-      """
-      \(functionBody(funcDecl, initialize: maxCount == nil ? "\(cacheTypeName(funcDecl)).Parameters" : ""))
-      """
-    ]
   }
 }
 
@@ -93,22 +93,13 @@ public struct MemoizeMacro2: BodyMacro {
       return []
     }
 
-    var limit: String?
-    let arguments = node.arguments?.as(LabeledExprListSyntax.self) ?? []
-    for argument in arguments {
-      if let label = argument.label?.text, label == "maxCount" {
-        if let valueExpr = argument.expression.as(IntegerLiteralExprSyntax.self) {
-          limit = valueExpr.literal.text
-          break
-        }
-      }
-    }
+    let maxCount: String? = maxCount(node)
 
     return [
       """
       \(structParameters(paramsType(funcDecl), funcDecl.signature.parameterClause))
       var \(cacheName(funcDecl)): [\(paramsType(funcDecl)): \(returnType(funcDecl))] = [:]
-      \(functionBodyWithLimit(paramsType(funcDecl).description, cacheName(funcDecl).text, limit, funcDecl))
+      \(functionBodyWithLimit(paramsType(funcDecl).description, cacheName(funcDecl).text, maxCount, funcDecl))
       """
     ]
   }
@@ -208,13 +199,13 @@ func treeCache(_ funcDecl: FunctionDeclSyntax, maxCount limit: String?) -> CodeB
       }
       @inlinable @inline(__always)
       static func create() -> Instance {
-        .init(maximumCapacity: \(raw: limit ?? "Int.max"))
+        .init(maxCount: \(raw: limit ?? "Int.max"))
       }
     }
     """
 }
 
-func functionBody(_ funcDecl: FunctionDeclSyntax, initialize: String) -> CodeBlockItemSyntax {
+func functionBodyWithMutex(_ funcDecl: FunctionDeclSyntax, initialize: String) -> CodeBlockItemSyntax {
 
   let cache: TokenSyntax = cacheName(funcDecl)
   let params = callParameters(funcDecl)
@@ -227,6 +218,26 @@ func functionBody(_ funcDecl: FunctionDeclSyntax, initialize: String) -> CodeBlo
       }
       let r = ___body(\(raw: params))
       \(cache).withLock { $0[args] = r }
+      return r
+    }
+    func ___body\(funcDecl.signature)\(funcDecl.body)
+    return \(raw: funcDecl.name)(\(raw: params))
+    """
+}
+
+func functionBody(_ funcDecl: FunctionDeclSyntax, initialize: String) -> CodeBlockItemSyntax {
+
+  let cache: TokenSyntax = cacheName(funcDecl)
+  let params = callParameters(funcDecl)
+
+  return """
+    func \(funcDecl.name)\(funcDecl.signature){
+      let args = \(raw: initialize)(\(raw: params))
+      if let result = \(cache)[args] {
+        return result
+      }
+      let r = ___body(\(raw: params))
+      \(cache)[args] = r
       return r
     }
     func ___body\(funcDecl.signature)\(funcDecl.body)
@@ -276,6 +287,20 @@ func returnType(_ funcDecl: FunctionDeclSyntax) -> TypeSyntax {
 
 func isStaticFunction(_ functionDecl: FunctionDeclSyntax) -> Bool {
   functionDecl.modifiers.contains { $0.name.text == "static" }
+}
+
+func maxCount(_ node: AttributeSyntax) -> String? {
+  var maxCount: String?
+  let arguments = node.arguments?.as(LabeledExprListSyntax.self) ?? []
+  for argument in arguments {
+    if let label = argument.label?.text, label == "maxCount" {
+      if let valueExpr = argument.expression.as(IntegerLiteralExprSyntax.self) {
+        maxCount = valueExpr.literal.text
+        break
+      }
+    }
+  }
+  return maxCount
 }
 
 @main

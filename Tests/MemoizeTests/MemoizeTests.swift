@@ -120,7 +120,7 @@ final class MemoizeTests: XCTestCase {
             }
           }
           
-          static let a_cache = Mutex(___MemoizationCache___a.create())
+          let a_cache = Mutex(___MemoizationCache___a.create())
           """,
         macros: testMacros
       )
@@ -168,7 +168,7 @@ final class MemoizeTests: XCTestCase {
             }
             @inlinable @inline(__always)
             static func create() -> Instance {
-              .init(maximumCapacity: 999)
+              .init(maxCount: 999)
             }
           }
           
