@@ -21,7 +21,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.0-latest"),
         .package(url: "https://github.com/narumij/swift-ac-collections.git",
-                 revision: "c7cbc1ae4cd4c2f39e4bf8e524ea73d0c85f4692"),
+                 revision: "9b53ae8a8677c089e1ff62cc4793b43ed7a7d088"),
 //                 from: "0.1.5"),
     ],
     targets: [

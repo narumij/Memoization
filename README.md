@@ -2,6 +2,8 @@
 
 [swift-ac-memoize](https://github.com/narumij/swift-ac-memoize)で、DP問題のうちメモ化再帰問題用のマクロを作成しました。
 
+それ以外の用途も含めてカバーすることを目標としています。
+
 ## 利用の仕方
 
 SwiftPMで swift-ac-libraryを利用する場合は、

@@ -201,7 +201,7 @@ func hashCache(_ funcDecl: FunctionDeclSyntax) -> CodeBlockItemSyntax {
     """
 }
 
-func treeCache(_ funcDecl: FunctionDeclSyntax, maxCount limit: String?) -> CodeBlockItemSyntax {
+func lruCache(_ funcDecl: FunctionDeclSyntax, maxCount limit: String?) -> CodeBlockItemSyntax {
   let params = typeParameter(funcDecl)
   return """
     enum \(cacheTypeName(funcDecl)): _MemoizationProtocol {
@@ -215,6 +215,25 @@ func treeCache(_ funcDecl: FunctionDeclSyntax, maxCount limit: String?) -> CodeB
       @inlinable @inline(__always)
       static func create() -> Instance {
         .init(maxCount: \(raw: limit ?? "Int.max"))
+      }
+    }
+    """
+}
+
+func baseCache(_ funcDecl: FunctionDeclSyntax, maxCount limit: String?) -> CodeBlockItemSyntax {
+  let params = typeParameter(funcDecl)
+  return """
+    enum \(cacheTypeName(funcDecl)): _MemoizationProtocol {
+      @usableFromInline typealias Parameters = (\(raw: params))
+      @usableFromInline typealias Return = \(returnType(funcDecl))
+      @usableFromInline typealias Instance = Base
+      @inlinable @inline(__always)
+      static func value_comp(_ a: Parameters, _ b: Parameters) -> Bool {
+        a < b
+      }
+      @inlinable @inline(__always)
+      static func create() -> Instance {
+        .init()
       }
     }
     """
@@ -287,7 +306,7 @@ func typeParameter(_ funcDecl: FunctionDeclSyntax) -> String {
 func cache(_ funcDecl: FunctionDeclSyntax,_ node: AttributeSyntax) -> CodeBlockItemSyntax {
   let maxCount: String? = maxCount(node)
   if let maxCount {
-    return treeCache(funcDecl, maxCount: maxCount)
+    return lruCache(funcDecl, maxCount: maxCount)
   } else {
     return hashCache(funcDecl)
   }
