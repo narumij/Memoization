@@ -15,40 +15,35 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
       return []
     }
 
-    let maxCount: String? = maxCount(node)
-    
-    var result: [DeclSyntax] = []
-    
-    if let maxCount {
-      result.append(
-      """
-      \(treeCache(funcDecl, maxCount: maxCount))
-      """)
-    } else {
-      result.append(
-      """
-      \(hashCache(funcDecl))
-      """)
-    }
-    
-    if context.lexicalContext == [] {
-      result.append(
-      """
-      let \(cacheName(funcDecl)) = Mutex(\(cacheTypeName(funcDecl)).create())
-      """)
+    if context.lexicalContext.first?.is(FunctionDeclSyntax.self) == true {
+      // 関数内関数の場合
+      return [
+      ]
+    } else if context.lexicalContext == [] {
+      // ファイルスコープの場合
+      return [
+        """
+        \(cache(funcDecl, node))
+        let \(cacheName(funcDecl)) = Mutex(\(cacheTypeName(funcDecl)).create())
+        """
+      ]
     } else if isStaticFunction(funcDecl) {
-      result.append(
-      """
-      static let \(cacheName(funcDecl)) = Mutex(\(cacheTypeName(funcDecl)).create())
-      """)
+      /// struct, class, actorでかつ、static
+      return [
+        """
+        \(cache(funcDecl, node))
+        static let \(cacheName(funcDecl)) = Mutex(\(cacheTypeName(funcDecl)).create())
+        """
+      ]
     } else {
-      result.append(
-      """
-      var \(cacheName(funcDecl)) = \(cacheTypeName(funcDecl)).create()
-      """)
+      /// struct, class, actorでかつ、non static
+      return [
+        """
+        \(cache(funcDecl, node))
+        var \(cacheName(funcDecl)) = \(cacheTypeName(funcDecl)).create()
+        """
+      ]
     }
-    
-    return result
   }
 
   public static func expansion(
@@ -61,17 +56,27 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
       return []
     }
 
-    let maxCount: String? = maxCount(node)
+    let initialize = maxCount(node) == nil ? "\(cacheTypeName(funcDecl)).Parameters" : ""
     
-    let initialize = maxCount == nil ? "\(cacheTypeName(funcDecl)).Parameters" : ""
-    
-    if isStaticFunction(funcDecl) || context.lexicalContext == [] {
+    if context.lexicalContext.first?.is(FunctionDeclSyntax.self) == true {
+      // 関数内関数の場合
+      return [
+      """
+      \(cache(funcDecl, node))
+      var \(cacheName(funcDecl)) = \(cacheTypeName(funcDecl)).create()
+      \(functionBody(funcDecl, initialize: initialize))
+      """
+      ]
+    }
+    else if isStaticFunction(funcDecl) || context.lexicalContext == [] {
+      // ファイルスコープまたはstaticの場合
       return [
       """
       \(functionBodyWithMutex(funcDecl, initialize: initialize))
       """
       ]
     } else {
+      // non file, non staticの場合
       return [
       """
       \(functionBody(funcDecl, initialize: initialize))
@@ -269,6 +274,15 @@ func typeParameter(_ funcDecl: FunctionDeclSyntax) -> String {
   }.joined(separator: ", ")
 }
 
+func cache(_ funcDecl: FunctionDeclSyntax,_ node: AttributeSyntax) -> CodeBlockItemSyntax {
+  let maxCount: String? = maxCount(node)
+  if let maxCount {
+    return treeCache(funcDecl, maxCount: maxCount)
+  } else {
+    return hashCache(funcDecl)
+  }
+}
+
 func cacheTypeName(_ funcDecl: FunctionDeclSyntax) -> TokenSyntax {
   "___MemoizationCache___\(raw: funcDecl.name.text)"
 }
@@ -300,7 +314,11 @@ func maxCount(_ node: AttributeSyntax) -> String? {
       }
     }
   }
-  return maxCount
+  return maxCount ?? (isLRU(node) ? "nil" : nil)
+}
+
+func isLRU(_ node: AttributeSyntax) -> Bool {
+  node.description.lowercased().contains("lru")
 }
 
 @main
