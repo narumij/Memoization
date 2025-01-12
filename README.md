@@ -1,4 +1,4 @@
-# swift-memoize
+# Memoization
 
 [swift-ac-memoize](https://github.com/narumij/swift-ac-memoize)で、DP問題のうちメモ化再帰問題用のマクロを作成しました。
 
