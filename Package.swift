@@ -5,13 +5,13 @@ import PackageDescription
 import CompilerPluginSupport
 
 let package = Package(
-    name: "Memoize",
+    name: "Memoization",
     platforms: [.macOS(.v15), .iOS(.v18), .tvOS(.v18), .watchOS(.v11), .macCatalyst(.v18)],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "Memoize",
-            targets: ["Memoize"]
+            name: "Memoization",
+            targets: ["Memoization"]
         ),
         .executable(
             name: "MemoizeClient",
@@ -37,13 +37,14 @@ let package = Package(
         ),
 
         // Library that exposes a macro as part of its API, which is used in client programs.
-        .target(name: "Memoize", dependencies: [
+        .target(name: "Memoization", dependencies: [
           "MemoizeMacros",
           .product(name: "AcCollections", package: "swift-ac-collections"),
-        ]),
+        ],
+                path: "Sources/Memoize"),
 
         // A client of the library, which is able to use the macro in its own code.
-        .executableTarget(name: "MemoizeClient", dependencies: ["Memoize"]),
+        .executableTarget(name: "MemoizeClient", dependencies: ["Memoization"]),
 
         // A test target used to develop the macro implementation.
         .testTarget(
