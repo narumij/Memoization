@@ -24,6 +24,7 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
       return [
         """
         \(cache(funcDecl, node))
+        
         let \(cacheName(funcDecl)) = Mutex(\(cacheTypeName(funcDecl)).create())
         """
       ]
@@ -32,6 +33,7 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
       return [
         """
         \(cache(funcDecl, node))
+        
         static let \(cacheName(funcDecl)) = Mutex(\(cacheTypeName(funcDecl)).create())
         """
       ]
@@ -40,6 +42,7 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
       return [
         """
         \(cache(funcDecl, node))
+        
         var \(cacheName(funcDecl)) = \(cacheTypeName(funcDecl)).create()
         """
       ]
@@ -144,37 +147,44 @@ func functionBodyWithLimit(
 }
 
 func structParameters(_ name: TypeSyntax, _ parameterClause: FunctionParameterClauseSyntax)
-  -> CodeBlockItemSyntax
+-> Syntax
 {
 
-  let inits = parameterClause.parameters.map {
+  let ii: (FunctionParameterSyntax) -> (TokenSyntax, TokenSyntax) = {
     switch ($0.firstName.tokenKind, $0.firstName, $0.parameterName) {
     case (.wildcard, _, .some(let parameterName)):
-      return "self.\(parameterName) = \(parameterName)"
+      return (parameterName, parameterName)
     case (_, let firstName, .some(let parameterName)):
-      return "self.\(firstName.trimmed) = \(parameterName)"
+      return (firstName.trimmed, parameterName)
     case (_, _, .none):
       fatalError()
     }
-  }.joined(separator: "\n")
+  }
 
-  let members = parameterClause.parameters.map {
+  let mm: (FunctionParameterSyntax) -> (TokenSyntax, TypeSyntax) = {
     switch ($0.firstName.tokenKind, $0.firstName, $0.parameterName, $0.type) {
     case (.wildcard, _, .some(let parameterName), let type):
-      return "@usableFromInline let \(parameterName): \(type)"
+      return (parameterName, type)
     case (_, let firstName, _, let type):
-      return "@usableFromInline let \(firstName.trimmed): \(type)"
+      return (firstName.trimmed, type)
     }
-  }.joined(separator: "\n")
-
-  return """
-    struct \(name): Hashable {
-      init\(parameterClause){
-        \(raw: inits)
-      }
-      \(raw: members)
+  }
+  
+  let inheritedClause = InheritanceClauseSyntax {
+    InheritedTypeSyntax(type: IdentifierTypeSyntax(name: .identifier("Hashable")))
+  }
+  
+  return StructDeclSyntax(name: "\(name)", inheritanceClause: inheritedClause) {
+    DeclSyntax("init\(parameterClause.trimmed){")
+    for (propertyName, parameterName) in parameterClause.parameters.map(ii) {
+      DeclSyntax("self.\(propertyName) = \(parameterName)\n")
     }
-    """
+    DeclSyntax("}")
+    for (propertyName, propertyType) in parameterClause.parameters.map(mm) {
+      DeclSyntax("@usableFromInline let \(propertyName): \(propertyType)")
+    }
+  }
+  .formatted()
 }
 
 func hashCache(_ funcDecl: FunctionDeclSyntax) -> CodeBlockItemSyntax {

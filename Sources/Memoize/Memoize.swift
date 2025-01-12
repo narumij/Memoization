@@ -9,7 +9,7 @@
 public macro Cache(maxCount: Int? = Int.max) = #externalMacro(module: "MemoizeMacros", type: "MemoizeMacro")
 
 @attached(body)
-public macro STDCache(maxCount: Int = Int.max) = #externalMacro(module: "MemoizeMacros", type: "MemoizeMacro2")
+public macro _Cache(maxCount: Int = Int.max) = #externalMacro(module: "MemoizeMacros", type: "MemoizeMacro2")
 
 @attached(body)
 @attached(peer, names: suffixed(_cache), prefixed(___MemoizationCache___))

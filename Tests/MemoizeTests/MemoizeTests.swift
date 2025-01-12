@@ -46,14 +46,14 @@ final class MemoizeTests: XCTestCase {
           
           enum ___MemoizationCache___a {
             @usableFromInline struct Parameters: Hashable {
-            init(_ b: Int, c: Int, d dd: Int) {
-              self.b = b
-              self.c = c
-              self.d = dd
-            }
-            @usableFromInline let b: Int
-            @usableFromInline let c: Int
-            @usableFromInline let d: Int
+              init(_ b: Int, c: Int, d dd: Int) {
+                  self.b = b
+                  self.c = c
+                  self.d = dd
+              }
+              @usableFromInline let b: Int
+              @usableFromInline let c: Int
+              @usableFromInline let d: Int
             }
             @usableFromInline typealias Return = Int
             @usableFromInline typealias Instance = [Parameters: Return]
@@ -103,14 +103,14 @@ final class MemoizeTests: XCTestCase {
 
           enum ___MemoizationCache___a {
             @usableFromInline struct Parameters: Hashable {
-            init(_ b: Int, c: Int, d dd: Int) {
-              self.b = b
-              self.c = c
-              self.d = dd
-            }
-            @usableFromInline let b: Int
-            @usableFromInline let c: Int
-            @usableFromInline let d: Int
+              init(_ b: Int, c: Int, d dd: Int) {
+                  self.b = b
+                  self.c = c
+                  self.d = dd
+              }
+              @usableFromInline let b: Int
+              @usableFromInline let c: Int
+              @usableFromInline let d: Int
             }
             @usableFromInline typealias Return = Int
             @usableFromInline typealias Instance = [Parameters: Return]
