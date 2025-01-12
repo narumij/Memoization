@@ -1,6 +1,6 @@
 import Memoization
 
-#if false
+#if true
 //@Cache(maxCount:150)
 //@Cache
 @LRUCache(maxCount: nil)

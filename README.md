@@ -25,7 +25,7 @@ dependencies: [
 
 ソースコードに以下を追加します。
 ```
-import Memoize
+import Memoization
 ```
 
 ## 使い方
@@ -118,6 +118,8 @@ tarai_cache.removeAll()
 - Comparableタイプのメモ化キャッシュは、CoWチェックすら省いて性能を絞り出しているため、コピーして利用した場合は未定義となります。
 
 - 対象の関数を@inlinableにはできません。必要な場合、@usableFromInlineにしてください。
+
+- 関数内関数にキャッシュ化アトリビュートを付与した場合、対象関数の内部に展開されます。
 
 ## ライセンス
 
