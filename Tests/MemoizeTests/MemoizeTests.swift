@@ -8,7 +8,7 @@ import XCTest
 #if canImport(MemoizeMacros)
   import MemoizeMacros
 
-  let testMacros: [String: Macro.Type] = [
+  fileprivate let testMacros: [String: Macro.Type] = [
     "Memoized": MemoizeMacro.self,
   ]
 #endif

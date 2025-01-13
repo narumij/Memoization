@@ -4,7 +4,7 @@ import SwiftSyntaxBuilder
 @_spi(Testing) import SwiftSyntaxMacroExpansion
 import SwiftSyntaxMacros
 
-public struct MemoizeMacro: BodyMacro & PeerMacro {
+public struct StoredMemoizeMacro: BodyMacro & PeerMacro {
 
   public static func expansion(
     of node: AttributeSyntax,
@@ -14,11 +14,16 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
     guard let funcDecl = declaration.as(FunctionDeclSyntax.self) else {
       return []
     }
-
+    
     if context.lexicalContext.first?.is(FunctionDeclSyntax.self) == true {
-      // 関数内関数の場合
-      return []
-    } else if context.lexicalContext == [] {
+      return [
+        """
+        #warning("Stored memoize macro can not use in function.")
+        """
+      ]
+    }
+
+    if context.lexicalContext == [] {
       // ファイルスコープの場合
       return [
         cache(funcDecl, node),
@@ -27,7 +32,7 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
         """
       ]
     } else if isStaticFunction(funcDecl) {
-      /// struct, class, actorでかつ、static
+      // struct, class, actorでかつ、static
       return [
         cache(funcDecl, node),
         """
@@ -35,7 +40,8 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
         """
       ]
     } else {
-      /// struct, class, actorでかつ、non static
+      // 関数内関数の場合
+      // struct, class, actorでかつ、non static
       return [
         cache(funcDecl, node),
         """
@@ -54,30 +60,25 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
     guard let funcDecl = declaration.as(FunctionDeclSyntax.self) else {
       return []
     }
+    
+    if context.lexicalContext.first?.is(FunctionDeclSyntax.self) == true {
+      return [
+        "\(funcDecl.body?.statements ?? [])"
+      ]
+    }
 
     let initialize = maxCount(node) == nil ? "\(cacheTypeName(funcDecl)).Parameters" : ""
     
-    if context.lexicalContext.first?.is(FunctionDeclSyntax.self) == true {
-      // 関数内関数の場合
-      return [
-      // DeclSyntax("// local scope body"),
-      """
-      \(cache(funcDecl, node))
-      """,
-      """
-      var \(cacheName(funcDecl)) = \(cacheTypeName(funcDecl)).create()
-      """
-      ]
-      + functionBody(funcDecl, initialize: initialize)
-    }
-    else if isStaticFunction(funcDecl) || context.lexicalContext == [] {
+    if isStaticFunction(funcDecl) || context.lexicalContext == [] {
       // ファイルスコープまたはstaticの場合
       return []
       + functionBodyWithMutex(funcDecl, initialize: initialize)
     } else {
+      // 関数内関数の場合
       // non file, non staticの場合
       return []
       + functionBody(funcDecl, initialize: initialize)
     }
   }
 }
+

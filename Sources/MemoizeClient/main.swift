@@ -5,6 +5,19 @@ print("Tak 20 10 0 is \(V5_S_3.tarai(x: 20, y: 10, z: 0))")
 print(V5_S_3.tarai_cache.withLock(\.info))
 #endif
 
+#if true
+func B() {
+  
+//  @InlineCache
+  @StoredCache // 展開した内容にさっぱり触れないので、ストアマクロの関数内展開は不可能
+  func C(_ c: Int) -> Int {
+    return 0
+  }
+  
+  _ = C(1)
+}
+#endif
+
 #if false
 //@Cache(maxCount:150)
 @Cache
