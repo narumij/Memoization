@@ -1,9 +1,14 @@
 import Memoization
 
-#if true
+#if false
+print("Tak 20 10 0 is \(V5_S_3.tarai(x: 20, y: 10, z: 0))")
+print(V5_S_3.tarai_cache.withLock(\.info))
+#endif
+
+#if false
 //@Cache(maxCount:150)
-//@Cache
-@LRUCache(maxCount: nil)
+@Cache
+//@LRUCache(maxCount: 150)
 func tarai(x: Int, y: Int, z: Int) -> Int {
   if x <= y {
     return y
@@ -22,6 +27,7 @@ print("Tak 20 10 0 is \(tarai(x: 20, y: 10, z: 0))")
 print(tarai_cache.withLock(\.info))
 
 func A() {
+  
   @Cache
   func fib(_ n: Int) -> Int {
     n<2 ? n : fib(n-1) + fib(n-2)

@@ -7,11 +7,11 @@ struct Memoized_Ver3 {
 
   // ユーザーコードと衝突しない名前を生成する工夫が必要そう
   private class LocalCache_Memoized_Ver3_tarai {
-    enum Memoize: _MemoizationProtocol {
-      typealias Parameter = (x: Int, y: Int, z: Int)
+    enum Memoize: _ComparableMemoizationCacheProtocol {
+      typealias Parameters = (x: Int, y: Int, z: Int)
       typealias Return = Int
       @inlinable @inline(__always)
-      static func value_comp(_ a: Parameter, _ b: Parameter) -> Bool { a < b }
+      static func value_comp(_ a: Parameters, _ b: Parameters) -> Bool { a < b }
     }
     var memo: Memoize.Base = .init()
   }

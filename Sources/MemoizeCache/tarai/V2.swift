@@ -8,11 +8,11 @@ enum Memoized_Ver2 {
     // swift-ac-memoizeとしてはキャンセル
     // デコレータ版が優先するので、参考実装にとどまる
     class GlobalCache {
-      enum Memoize: _MemoizationProtocol {
-        typealias Parameter = (x: Int, y: Int, z: Int)
+      enum Memoize: _ComparableMemoizationCacheProtocol {
+        typealias Parameters = (x: Int, y: Int, z: Int)
         typealias Return = Int
         @inlinable @inline(__always)
-        static func value_comp(_ a: Parameter, _ b: Parameter) -> Bool { a < b }
+        static func value_comp(_ a: Parameters, _ b: Parameters) -> Bool { a < b }
       }
       nonisolated(unsafe) static var cache: Memoize.Base = .init()
       var memo: Memoize.Base {
@@ -22,11 +22,11 @@ enum Memoized_Ver2 {
     }
 
     class Cache {
-      enum Memoize: _MemoizationProtocol {
-        typealias Parameter = (x: Int, y: Int, z: Int)
+      enum Memoize: _ComparableMemoizationCacheProtocol {
+        typealias Parameters = (x: Int, y: Int, z: Int)
         typealias Return = Int
         @inlinable @inline(__always)
-        static func value_comp(_ a: Parameter, _ b: Parameter) -> Bool { a < b }
+        static func value_comp(_ a: Parameters, _ b: Parameters) -> Bool { a < b }
       }
       var memo: Memoize.Base = .init()
     }

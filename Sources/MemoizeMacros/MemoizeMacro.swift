@@ -17,32 +17,28 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
 
     if context.lexicalContext.first?.is(FunctionDeclSyntax.self) == true {
       // 関数内関数の場合
-      return [
-      ]
+      return []
     } else if context.lexicalContext == [] {
       // ファイルスコープの場合
       return [
+        cache(funcDecl, node),
         """
-        \(cache(funcDecl, node))
-        
         let \(cacheName(funcDecl)) = Mutex(\(cacheTypeName(funcDecl)).create())
         """
       ]
     } else if isStaticFunction(funcDecl) {
       /// struct, class, actorでかつ、static
       return [
+        cache(funcDecl, node),
         """
-        \(cache(funcDecl, node))
-        
         static let \(cacheName(funcDecl)) = Mutex(\(cacheTypeName(funcDecl)).create())
         """
       ]
     } else {
       /// struct, class, actorでかつ、non static
       return [
+        cache(funcDecl, node),
         """
-        \(cache(funcDecl, node))
-        
         var \(cacheName(funcDecl)) = \(cacheTypeName(funcDecl)).create()
         """
       ]
@@ -64,27 +60,24 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
     if context.lexicalContext.first?.is(FunctionDeclSyntax.self) == true {
       // 関数内関数の場合
       return [
+      // DeclSyntax("// local scope body"),
       """
       \(cache(funcDecl, node))
+      """,
+      """
       var \(cacheName(funcDecl)) = \(cacheTypeName(funcDecl)).create()
-      \(functionBody(funcDecl, initialize: initialize))
       """
       ]
+      + functionBody(funcDecl, initialize: initialize)
     }
     else if isStaticFunction(funcDecl) || context.lexicalContext == [] {
       // ファイルスコープまたはstaticの場合
-      return [
-      """
-      \(functionBodyWithMutex(funcDecl, initialize: initialize))
-      """
-      ]
+      return []
+      + functionBodyWithMutex(funcDecl, initialize: initialize)
     } else {
       // non file, non staticの場合
-      return [
-      """
-      \(functionBody(funcDecl, initialize: initialize))
-      """
-      ]
+      return []
+      + functionBody(funcDecl, initialize: initialize)
     }
   }
 }
@@ -175,61 +168,27 @@ func structParameters(_ name: TypeSyntax, _ parameterClause: FunctionParameterCl
   }
   
   return StructDeclSyntax(name: "\(name)", inheritanceClause: inheritedClause) {
-    DeclSyntax("init\(parameterClause.trimmed){")
-    for (propertyName, parameterName) in parameterClause.parameters.map(ii) {
-      DeclSyntax("self.\(propertyName) = \(parameterName)\n")
-    }
-    DeclSyntax("}")
     for (propertyName, propertyType) in parameterClause.parameters.map(mm) {
       DeclSyntax("@usableFromInline let \(propertyName): \(propertyType)")
+    }
+    InitializerDeclSyntax(signature: .init(parameterClause: parameterClause)) {
+      for (propertyName, parameterName) in parameterClause.parameters.map(ii) {
+        ExprSyntax("self.\(propertyName) = \(parameterName)\n")
+      }
     }
   }
   .formatted()
 }
 
-func hashCache(_ funcDecl: FunctionDeclSyntax) -> CodeBlockItemSyntax {
+func hashCache(_ funcDecl: FunctionDeclSyntax) -> DeclSyntax {
   return """
-    enum \(cacheTypeName(funcDecl)) {
+    enum \(cacheTypeName(funcDecl)): _HashableMemoizationCacheProtocol {
       @usableFromInline \(structParameters("Parameters", funcDecl.signature.parameterClause))
       @usableFromInline typealias Return = \(returnType(funcDecl))
-      @usableFromInline typealias Instance = [Parameters:Return]
+      @usableFromInline typealias Instance = Standard
       @inlinable @inline(__always)
-      static func create() -> Instance {
-        [:]
-      }
-    }
-    """
-}
-
-func lruCache(_ funcDecl: FunctionDeclSyntax, maxCount limit: String?) -> CodeBlockItemSyntax {
-  let params = typeParameter(funcDecl)
-  return """
-    enum \(cacheTypeName(funcDecl)): _MemoizationProtocol {
-      @usableFromInline typealias Parameters = (\(raw: params))
-      @usableFromInline typealias Return = \(returnType(funcDecl))
-      @usableFromInline typealias Instance = LRU
-      @inlinable @inline(__always)
-      static func value_comp(_ a: Parameters, _ b: Parameters) -> Bool {
-        a < b
-      }
-      @inlinable @inline(__always)
-      static func create() -> Instance {
-        .init(maxCount: \(raw: limit ?? "Int.max"))
-      }
-    }
-    """
-}
-
-func baseCache(_ funcDecl: FunctionDeclSyntax, maxCount limit: String?) -> CodeBlockItemSyntax {
-  let params = typeParameter(funcDecl)
-  return """
-    enum \(cacheTypeName(funcDecl)): _MemoizationProtocol {
-      @usableFromInline typealias Parameters = (\(raw: params))
-      @usableFromInline typealias Return = \(returnType(funcDecl))
-      @usableFromInline typealias Instance = Base
-      @inlinable @inline(__always)
-      static func value_comp(_ a: Parameters, _ b: Parameters) -> Bool {
-        a < b
+      static func params\(funcDecl.signature.parameterClause)-> Parameters {
+        Parameters(\(paramsExpr(funcDecl)))
       }
       @inlinable @inline(__always)
       static func create() -> Instance {
@@ -239,60 +198,125 @@ func baseCache(_ funcDecl: FunctionDeclSyntax, maxCount limit: String?) -> CodeB
     """
 }
 
-func functionBodyWithMutex(_ funcDecl: FunctionDeclSyntax, initialize: String) -> CodeBlockItemSyntax {
+func lruCache(_ funcDecl: FunctionDeclSyntax, maxCount limit: String?) -> DeclSyntax {
+  return """
+    enum \(cacheTypeName(funcDecl)): _ComparableMemoizationCacheProtocol {
+      @usableFromInline typealias Parameters = (\(raw: tupleTypeElement(funcDecl)))
+      @usableFromInline typealias Return = \(returnType(funcDecl))
+      @usableFromInline typealias Instance = LRU
+      @inlinable @inline(__always)
+      static func value_comp(_ a: Parameters, _ b: Parameters) -> Bool {
+        a < b
+      }
+      @inlinable @inline(__always)
+      static func params\(funcDecl.signature.parameterClause) -> Parameters {
+        (\(paramsExpr(funcDecl)))
+      }
+      @inlinable @inline(__always)
+      static func create() -> Instance {
+        .init(maxCount: \(raw: limit ?? "Int.max"))
+      }
+    }
+    """
+}
+
+func baseCache(_ funcDecl: FunctionDeclSyntax, maxCount limit: String?) -> DeclSyntax {
+  return """
+    enum \(cacheTypeName(funcDecl)): _ComparableMemoizationProtocol {
+      @usableFromInline typealias Parameters = (\(raw: tupleTypeElement(funcDecl)))
+      @usableFromInline typealias Return = \(returnType(funcDecl))
+      @usableFromInline typealias Instance = Base
+      @inlinable @inline(__always)
+      static func value_comp(_ a: Parameters, _ b: Parameters) -> Bool {
+        a < b
+      }
+      @inlinable @inline(__always)
+      static func params\(funcDecl.signature.parameterClause) -> Parameters {
+        (\(paramsExpr(funcDecl)))
+      }
+      @inlinable @inline(__always)
+      static func create() -> Instance {
+        .init()
+      }
+    }
+    """
+}
+
+func functionBodyWithMutex(_ funcDecl: FunctionDeclSyntax, initialize: String) -> [CodeBlockItemSyntax] {
 
   let cache: TokenSyntax = cacheName(funcDecl)
-  let params = callParameters(funcDecl)
+  let params = paramsExpr(funcDecl)
   
-  return """
+  return [
+    """
     func \(funcDecl.name)\(funcDecl.signature){
-      let args = \(raw: initialize)(\(raw: params))
-      if let result = \(cache).withLock({ $0[args] }) {
+      typealias ___C = \(cacheTypeName(funcDecl))
+      let params = ___C.params(\(params))
+      if let result = \(cache).withLock({ $0[params] }) {
         return result
       }
-      let r = ___body(\(raw: params))
-      \(cache).withLock { $0[args] = r }
+      let r = ___body(\(params))
+      \(cache).withLock { $0[params] = r }
       return r
     }
-    func ___body\(funcDecl.signature)\(funcDecl.body)
-    return \(raw: funcDecl.name)(\(raw: params))
+    """,
     """
+    func ___body\(funcDecl.signature)\(funcDecl.body)
+    """,
+    """
+    return \(raw: funcDecl.name)(\(params))
+    """
+  ]
 }
 
-func functionBody(_ funcDecl: FunctionDeclSyntax, initialize: String) -> CodeBlockItemSyntax {
+func functionBody(_ funcDecl: FunctionDeclSyntax, initialize: String) -> [CodeBlockItemSyntax] {
 
   let cache: TokenSyntax = cacheName(funcDecl)
-  let params = callParameters(funcDecl)
-
-  return """
+  let arguments: LabeledExprListSyntax = paramsExpr(funcDecl)
+  
+  return [
+    """
     func \(funcDecl.name)\(funcDecl.signature){
-      let args = \(raw: initialize)(\(raw: params))
-      if let result = \(cache)[args] {
+      typealias ___C = \(cacheTypeName(funcDecl))
+      let params = ___C.params(\(arguments))
+      if let result = \(cache)[params] {
         return result
       }
-      let r = ___body(\(raw: params))
-      \(cache)[args] = r
+      let r = ___body(\(arguments))
+      \(cache)[params] = r
       return r
     }
-    func ___body\(funcDecl.signature)\(funcDecl.body)
-    return \(raw: funcDecl.name)(\(raw: params))
+    """,
     """
+    func ___body\(funcDecl.signature)\(funcDecl.body)
+    """,
+    """
+    return \(funcDecl.name)(\(arguments))
+    """
+  ]
 }
 
-func callParameters(_ funcDecl: FunctionDeclSyntax) -> String {
-  funcDecl.signature.parameterClause.parameters.map {
-    switch ($0.firstName.tokenKind, $0.firstName, $0.parameterName) {
+func paramsExpr(_ funcDecl: FunctionDeclSyntax) -> LabeledExprListSyntax {
+  
+  func expr(_ p: FunctionParameterSyntax) -> LabeledExprSyntax? {
+    switch (p.firstName.tokenKind, p.firstName, p.parameterName) {
     case (.wildcard, _, .some(let parameterName)):
-      return "\(parameterName)"
+      return LabeledExprSyntax(expression: ExprSyntax(stringLiteral: "\(parameterName)"))
     case (_, let firstName, .some(let parameterName)):
-      return "\(firstName.trimmed): \(parameterName)"
+      return LabeledExprSyntax(label: firstName.trimmed, colon: ":", expression: ExprSyntax(stringLiteral: "\(parameterName)"))
     case (_, _, .none):
-      fatalError()
+      return nil
     }
-  }.joined(separator: ", ")
+  }
+  
+  return LabeledExprListSyntax {
+    for labeldExprSyntax in funcDecl.signature.parameterClause.parameters.compactMap(expr) {
+      labeldExprSyntax
+    }
+  }
 }
 
-func typeParameter(_ funcDecl: FunctionDeclSyntax) -> String {
+func tupleTypeElement(_ funcDecl: FunctionDeclSyntax) -> String {
   funcDecl.signature.parameterClause.parameters.map {
     switch ($0.firstName.tokenKind, $0.firstName, $0.type) {
     case (.wildcard,_,let type):
@@ -303,7 +327,7 @@ func typeParameter(_ funcDecl: FunctionDeclSyntax) -> String {
   }.joined(separator: ", ")
 }
 
-func cache(_ funcDecl: FunctionDeclSyntax,_ node: AttributeSyntax) -> CodeBlockItemSyntax {
+func cache(_ funcDecl: FunctionDeclSyntax,_ node: AttributeSyntax) -> DeclSyntax {
   let maxCount: String? = maxCount(node)
   if let maxCount {
     return lruCache(funcDecl, maxCount: maxCount)
@@ -343,7 +367,7 @@ func maxCount(_ node: AttributeSyntax) -> String? {
       }
     }
   }
-  return maxCount ?? (isLRU(node) ? "nil" : nil)
+  return maxCount ?? (isLRU(node) ? "Int.max" : nil)
 }
 
 func isLRU(_ node: AttributeSyntax) -> Bool {
