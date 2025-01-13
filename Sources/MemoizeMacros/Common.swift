@@ -247,7 +247,7 @@ func tupleTypeElement(_ funcDecl: FunctionDeclSyntax) -> String {
   }.joined(separator: ", ")
 }
 
-func cache(_ funcDecl: FunctionDeclSyntax,_ node: AttributeSyntax) -> DeclSyntax {
+func storedCache(_ funcDecl: FunctionDeclSyntax,_ node: AttributeSyntax) -> DeclSyntax {
   let maxCount: String? = maxCount(node)
   if let maxCount {
     return cowCache(funcDecl, maxCount: maxCount)

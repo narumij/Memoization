@@ -26,7 +26,7 @@ public struct StoredMemoizeMacro: BodyMacro & PeerMacro {
     if context.lexicalContext == [] {
       // ファイルスコープの場合
       return [
-        cache(funcDecl, node),
+        storedCache(funcDecl, node),
         """
         let \(cacheName(funcDecl)) = Mutex(\(cacheTypeName(funcDecl)).create())
         """
@@ -34,7 +34,7 @@ public struct StoredMemoizeMacro: BodyMacro & PeerMacro {
     } else if isStaticFunction(funcDecl) {
       // struct, class, actorでかつ、static
       return [
-        cache(funcDecl, node),
+        storedCache(funcDecl, node),
         """
         static let \(cacheName(funcDecl)) = Mutex(\(cacheTypeName(funcDecl)).create())
         """
@@ -43,7 +43,7 @@ public struct StoredMemoizeMacro: BodyMacro & PeerMacro {
       // 関数内関数の場合
       // struct, class, actorでかつ、non static
       return [
-        cache(funcDecl, node),
+        storedCache(funcDecl, node),
         """
         var \(cacheName(funcDecl)) = \(cacheTypeName(funcDecl)).create()
         """

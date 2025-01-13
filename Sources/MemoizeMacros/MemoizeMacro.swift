@@ -21,7 +21,7 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
     } else if context.lexicalContext == [] {
       // ファイルスコープの場合
       return [
-        cache(funcDecl, node),
+        storedCache(funcDecl, node),
         """
         let \(cacheName(funcDecl)) = Mutex(\(cacheTypeName(funcDecl)).create())
         """
@@ -29,7 +29,7 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
     } else if isStaticFunction(funcDecl) {
       /// struct, class, actorでかつ、static
       return [
-        cache(funcDecl, node),
+        storedCache(funcDecl, node),
         """
         static let \(cacheName(funcDecl)) = Mutex(\(cacheTypeName(funcDecl)).create())
         """
@@ -37,7 +37,7 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
     } else {
       /// struct, class, actorでかつ、non static
       return [
-        cache(funcDecl, node),
+        storedCache(funcDecl, node),
         """
         var \(cacheName(funcDecl)) = \(cacheTypeName(funcDecl)).create()
         """
@@ -59,16 +59,11 @@ public struct MemoizeMacro: BodyMacro & PeerMacro {
     
     if context.lexicalContext.first?.is(FunctionDeclSyntax.self) == true {
       // 関数内関数の場合
-      return [
-      // DeclSyntax("// local scope body"),
-      """
-      \(cache(funcDecl, node))
-      """,
-      """
-      var \(cacheName(funcDecl)) = \(cacheTypeName(funcDecl)).create()
-      """
-      ]
-      + functionBody(funcDecl, initialize: initialize)
+      if let maxCount = maxCount(node) {
+        return inlineBodyLRU(funcDecl, maxCount: maxCount)
+      } else {
+        return inlineBodyStandard(funcDecl)
+      }
     }
     else if isStaticFunction(funcDecl) || context.lexicalContext == [] {
       // ファイルスコープまたはstaticの場合
