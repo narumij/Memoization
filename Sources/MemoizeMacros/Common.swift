@@ -162,6 +162,20 @@ func baseCache(_ funcDecl: FunctionDeclSyntax, maxCount limit: String?) -> DeclS
     """
 }
 
+func hashCacheN(_ funcDecl: FunctionDeclSyntax) -> DeclSyntax {
+  return """
+    typealias Params = Pack<\(raw: labelLessTypeElement(funcDecl))>
+    typealias Memo = Params.Cache.Standard<\(returnType(funcDecl))>
+    """
+}
+
+func lruCacheN(_ funcDecl: FunctionDeclSyntax, maxCount limit: String?) -> DeclSyntax {
+  return """
+    typealias Params = Pack<\(raw: labelLessTypeElement(funcDecl))>
+    typealias Memo = Params.Cache.LRU<\(returnType(funcDecl))>
+    """
+}
+
 func functionBodyWithMutex(_ funcDecl: FunctionDeclSyntax, initialize: String) -> [CodeBlockItemSyntax] {
 
   let cache: TokenSyntax = cacheName(funcDecl)
@@ -216,6 +230,34 @@ func functionBody(_ funcDecl: FunctionDeclSyntax, initialize: String) -> [CodeBl
   ]
 }
 
+func functionBodyN(_ funcDecl: FunctionDeclSyntax, initialize: String) -> [CodeBlockItemSyntax] {
+
+  let cache: TokenSyntax = cacheName(funcDecl)
+  let arguments: LabeledExprListSyntax = paramsExpr(funcDecl)
+
+  let argumentsN: LabeledExprListSyntax = paramsNExpr(funcDecl)
+
+  return [
+    """
+    func \(funcDecl.name)\(funcDecl.signature){
+      let params = Params(\(argumentsN))
+      if let result = \(cache)[params] {
+        return result
+      }
+      let r = ___body(\(arguments))
+      \(cache)[params] = r
+      return r
+    }
+    """,
+    """
+    func ___body\(funcDecl.signature)\(funcDecl.body)
+    """,
+    """
+    return \(funcDecl.name)(\(arguments))
+    """
+  ]
+}
+
 func paramsExpr(_ funcDecl: FunctionDeclSyntax) -> LabeledExprListSyntax {
   
   func expr(_ p: FunctionParameterSyntax) -> LabeledExprSyntax? {
@@ -236,6 +278,27 @@ func paramsExpr(_ funcDecl: FunctionDeclSyntax) -> LabeledExprListSyntax {
   }
 }
 
+func paramsNExpr(_ funcDecl: FunctionDeclSyntax) -> LabeledExprListSyntax {
+  
+  func expr(_ p: FunctionParameterSyntax) -> LabeledExprSyntax? {
+    switch (p.firstName.tokenKind, p.firstName, p.parameterName) {
+    case (.wildcard, _, .some(let parameterName)):
+      return LabeledExprSyntax(expression: ExprSyntax(stringLiteral: "\(parameterName)"))
+    case (_, _, .some(let parameterName)):
+      return LabeledExprSyntax(expression: ExprSyntax(stringLiteral: "\(parameterName)"))
+    case (_, _, .none):
+      return nil
+    }
+  }
+  
+  return LabeledExprListSyntax {
+    for labeldExprSyntax in funcDecl.signature.parameterClause.parameters.compactMap(expr) {
+      labeldExprSyntax
+    }
+  }
+}
+
+
 func tupleTypeElement(_ funcDecl: FunctionDeclSyntax) -> String {
   funcDecl.signature.parameterClause.parameters.map {
     switch ($0.firstName.tokenKind, $0.firstName, $0.type) {
@@ -246,6 +309,18 @@ func tupleTypeElement(_ funcDecl: FunctionDeclSyntax) -> String {
     }
   }.joined(separator: ", ")
 }
+
+func labelLessTypeElement(_ funcDecl: FunctionDeclSyntax) -> String {
+  funcDecl.signature.parameterClause.parameters.map {
+    switch ($0.firstName.tokenKind, $0.firstName, $0.type) {
+    case (.wildcard,_,let type):
+      return "\(type)"
+    case (_,_,let type):
+      return "\(type)"
+    }
+  }.joined(separator: ", ")
+}
+
 
 func storedCache(_ funcDecl: FunctionDeclSyntax,_ node: AttributeSyntax) -> DeclSyntax {
   let maxCount: String? = maxCount(node)

@@ -28,27 +28,11 @@ final class InlineMemoizeTests: XCTestCase {
         """,
         expandedSource: """
           func test(_ a: Int) -> Int {
-              enum ___MemoizationCache___test: _ComparableMemoizationCacheProtocol {
-                @usableFromInline typealias Parameters = (Int)
-                @usableFromInline typealias Return = Int
-                @usableFromInline typealias Instance = LRU
-                @inlinable @inline(__always)
-                static func value_comp(_ a: Parameters, _ b: Parameters) -> Bool {
-                  a < b
-                }
-                @inlinable @inline(__always)
-                static func params(_ a: Int)  -> Parameters {
-                  (a)
-                }
-                @inlinable @inline(__always)
-                static func create() -> Instance {
-                  .init(maxCount: 0)
-                }
-              }
-              var test_cache = ___MemoizationCache___test.create()
+              typealias Params = Pack<Int>
+              typealias Memo = Params.Cache.LRU<Int>
+              var test_cache: Memo = .init()
               func test(_ a: Int) -> Int {
-                typealias ___C = ___MemoizationCache___test
-                let params = ___C.params(a)
+                let params = Params(a)
                 if let result = test_cache[params] {
                   return result
                 }
@@ -90,27 +74,11 @@ final class InlineMemoizeTests: XCTestCase {
         """,
         expandedSource: """
         func tarai(_ x: Int, y yy: Int, z: Int) -> Int {
-            enum ___MemoizationCache___tarai: _ComparableMemoizationCacheProtocol {
-              @usableFromInline typealias Parameters = (Int, y: Int, z: Int)
-              @usableFromInline typealias Return = Int
-              @usableFromInline typealias Instance = LRU
-              @inlinable @inline(__always)
-              static func value_comp(_ a: Parameters, _ b: Parameters) -> Bool {
-                a < b
-              }
-              @inlinable @inline(__always)
-              static func params(_ x: Int, y yy: Int, z: Int)  -> Parameters {
-                (x, y: yy, z: z)
-              }
-              @inlinable @inline(__always)
-              static func create() -> Instance {
-                .init(maxCount: Int.max)
-              }
-            }
-            var tarai_cache = ___MemoizationCache___tarai.create()
+            typealias Params = Pack<Int, Int, Int>
+            typealias Memo = Params.Cache.LRU<Int>
+            var tarai_cache: Memo = .init()
             func tarai(_ x: Int, y yy: Int, z: Int) -> Int {
-              typealias ___C = ___MemoizationCache___tarai
-              let params = ___C.params(x, y: yy, z: z)
+              let params = Params(x, yy, z)
               if let result = tarai_cache[params] {
                 return result
               }
@@ -156,32 +124,11 @@ final class InlineMemoizeTests: XCTestCase {
         """,
         expandedSource: """
         func tarai(_ x: Int, y yy: Int, z: Int) -> Int {
-            enum ___MemoizationCache___tarai: _HashableMemoizationCacheProtocol {
-              @usableFromInline struct Parameters: Hashable {
-                @usableFromInline let x: Int
-                @usableFromInline let y: Int
-                @usableFromInline let z: Int
-                init(_ x: Int, y yy: Int, z: Int) {
-                    self.x = x
-                    self.y = yy
-                    self.z = z
-                }
-              }
-              @usableFromInline typealias Return = Int
-              @usableFromInline typealias Instance = Standard
-              @inlinable @inline(__always)
-              static func params(_ x: Int, y yy: Int, z: Int) -> Parameters {
-                Parameters(x, y: yy, z: z)
-              }
-              @inlinable @inline(__always)
-              static func create() -> Instance {
-                .init()
-              }
-            }
-            var tarai_cache = ___MemoizationCache___tarai.create()
+            typealias Params = Pack<Int, Int, Int>
+            typealias Memo = Params.Cache.Standard<Int>
+            var tarai_cache: Memo = .init()
             func tarai(_ x: Int, y yy: Int, z: Int) -> Int {
-              typealias ___C = ___MemoizationCache___tarai
-              let params = ___C.params(x, y: yy, z: z)
+              let params = Params(x, yy, z)
               if let result = tarai_cache[params] {
                 return result
               }

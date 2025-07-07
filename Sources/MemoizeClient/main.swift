@@ -5,7 +5,7 @@ print("Tak 20 10 0 is \(V5_S_3.tarai(x: 20, y: 10, z: 0))")
 print(V5_S_3.tarai_cache.withLock(\.info))
 #endif
 
-#if true
+#if false
 func B() {
   
 //  @InlineCache
@@ -16,6 +16,25 @@ func B() {
   
   _ = C(1)
 }
+#endif
+
+#if true
+
+#if true
+@InlineCache
+//@InlineLRUCache(maxCount: Int.max)
+func tarai(x: Int, y: Int, z: Int) -> Int {
+  if x <= y {
+    return y
+  } else {
+    return tarai(
+      x: tarai(x: x - 1, y: y, z: z),
+      y: tarai(x: y - 1, y: z, z: x),
+      z: tarai(x: z - 1, y: x, z: y))
+  }
+}
+
+print("Tak 20 10 0 is \(tarai(x: 20, y: 10, z: 0))")
 #endif
 
 #if false
@@ -36,9 +55,10 @@ func tarai(x: Int, y: Int, z: Int) -> Int {
 //tarai_cache.removeAll()
 
 print("Tak 20 10 0 is \(tarai(x: 20, y: 10, z: 0))")
-
 print(tarai_cache.withLock(\.info))
+#endif
 
+#if false
 func A() {
   
   @Cache
@@ -54,8 +74,9 @@ func fib(_ n: Int) -> Int {
 
 print((0..<16).map { fib($0) })
 print(fib_cache.withLock(\.info))
+#endif
 
-#if true
+#if false
 struct Main2 {
   @LRUCache(maxCount: 150)
   static func tarai(x: Int, y: Int, z: Int) -> Int {
@@ -71,7 +92,7 @@ struct Main2 {
 }
 #endif
 
-#if true
+#if false
 struct Main3 {
   @LRUCache(maxCount: 150)
   mutating func tarai(x: Int, y: Int, z: Int) -> Int {

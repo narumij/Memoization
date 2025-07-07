@@ -28,23 +28,23 @@ public struct InlineMemoizeMacro: BodyMacro {
 func inlineBodyLRU(_ funcDecl: FunctionDeclSyntax,maxCount: String?) -> [CodeBlockItemSyntax] {
   [
     """
-    \(lruCache(funcDecl, maxCount: maxCount))
+    \(lruCacheN(funcDecl, maxCount: maxCount))
     """,
     """
-    var \(cacheName(funcDecl)) = \(cacheTypeName(funcDecl)).create()
+    var \(cacheName(funcDecl)): Memo = .init()
     """
   ] +
-  functionBody(funcDecl, initialize: "")
+  functionBodyN(funcDecl, initialize: "")
 }
 
 func inlineBodyStandard(_ funcDecl: FunctionDeclSyntax) -> [CodeBlockItemSyntax] {
   [
     """
-    \(hashCache(funcDecl))
+    \(hashCacheN(funcDecl))
     """,
     """
-    var \(cacheName(funcDecl)) = \(cacheTypeName(funcDecl)).create()
+    var \(cacheName(funcDecl)): Memo = .init()
     """
   ] +
-  functionBody(funcDecl, initialize: "\(cacheTypeName(funcDecl)).Parameters")
+  functionBodyN(funcDecl, initialize: "\(cacheTypeName(funcDecl)).Parameters")
 }

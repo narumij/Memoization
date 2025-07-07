@@ -172,7 +172,7 @@ final class MemoizeTests: XCTestCase {
           enum ___MemoizationCache___a: _ComparableMemoizationCacheProtocol {
             @usableFromInline typealias Parameters = (Int, c: Int, d: Int)
             @usableFromInline typealias Return = Int
-            @usableFromInline typealias Instance = LRU
+            @usableFromInline typealias Instance = CoW
             @inlinable @inline(__always)
             static func value_comp(_ a: Parameters, _ b: Parameters) -> Bool {
               a < b

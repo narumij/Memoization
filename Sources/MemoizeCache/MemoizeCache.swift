@@ -92,3 +92,30 @@ where A: Comparable, B: Comparable, C: Comparable, D: Comparable {
   }
 }
 
+@usableFromInline
+struct MemoizeCacheComparable<each T, Result>
+where repeat each T: Comparable {
+  @usableFromInline
+  init() { }
+  @usableFromInline
+  var __memo: _MemoizeCacheBase<Pack<repeat each T>, Result> = .init()
+  @inlinable
+  subscript(pack: Pack<repeat each T>) -> Result? {
+    mutating get { __memo[pack] }
+    _modify { yield &__memo[pack] }
+  }
+}
+
+@usableFromInline
+struct MemoizeCacheHashable<each T, Result>
+where repeat each T: Hashable {
+  @usableFromInline
+  init() { }
+  @usableFromInline
+  var __memo: [Pack<repeat each T>: Result] = .init()
+  @inlinable
+  subscript(pack: Pack<repeat each T>) -> Result? {
+    _read { yield __memo[pack] }
+    _modify { yield &__memo[pack] }
+  }
+}
