@@ -25,13 +25,10 @@ public struct InlineMemoizeMacro: BodyMacro {
   }
 }
 
-func inlineBodyLRU(_ funcDecl: FunctionDeclSyntax,maxCount: String?) -> [CodeBlockItemSyntax] {
+func inlineBodyLRU(_ funcDecl: FunctionDeclSyntax, maxCount: String?) -> [CodeBlockItemSyntax] {
   [
     """
-    \(lruCacheN(funcDecl, maxCount: maxCount))
-    """,
-    """
-    var \(cacheName(funcDecl)): Memo = .init()
+    var \(cacheName(funcDecl)): Pack<\(raw: labelLessTypeElement(funcDecl))>.LRU<\(returnType(funcDecl))> = .init(maxCount: \(raw: maxCount ?? "Int.max"))
     """
   ] +
   functionBodyN(funcDecl, initialize: "")
@@ -40,10 +37,7 @@ func inlineBodyLRU(_ funcDecl: FunctionDeclSyntax,maxCount: String?) -> [CodeBlo
 func inlineBodyStandard(_ funcDecl: FunctionDeclSyntax) -> [CodeBlockItemSyntax] {
   [
     """
-    \(hashCacheN(funcDecl))
-    """,
-    """
-    var \(cacheName(funcDecl)): Memo = .init()
+    var \(cacheName(funcDecl)): Pack<\(raw: labelLessTypeElement(funcDecl))>.Standard<\(returnType(funcDecl))> = .init()
     """
   ] +
   functionBodyN(funcDecl, initialize: "\(cacheTypeName(funcDecl)).Parameters")

@@ -240,12 +240,11 @@ func functionBodyN(_ funcDecl: FunctionDeclSyntax, initialize: String) -> [CodeB
   return [
     """
     func \(funcDecl.name)\(funcDecl.signature){
-      let params = Params(\(argumentsN))
-      if let result = \(cache)[params] {
+      if let result = \(cache)[.init(\(argumentsN))] {
         return result
       }
       let r = ___body(\(arguments))
-      \(cache)[params] = r
+      \(cache)[.init(\(argumentsN))] = r
       return r
     }
     """,

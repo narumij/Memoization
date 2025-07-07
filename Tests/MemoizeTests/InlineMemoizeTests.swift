@@ -28,16 +28,13 @@ final class InlineMemoizeTests: XCTestCase {
         """,
         expandedSource: """
           func test(_ a: Int) -> Int {
-              typealias Params = Pack<Int>
-              typealias Memo = Params.Cache.LRU<Int>
-              var test_cache: Memo = .init()
+              var test_cache: Pack<Int>.LRU<Int> = .init(maxCount: 0)
               func test(_ a: Int) -> Int {
-                let params = Params(a)
-                if let result = test_cache[params] {
+                if let result = test_cache[.init(a)] {
                   return result
                 }
                 let r = ___body(a)
-                test_cache[params] = r
+                test_cache[.init(a)] = r
                 return r
               }
               func ___body(_ a: Int) -> Int {
@@ -74,16 +71,13 @@ final class InlineMemoizeTests: XCTestCase {
         """,
         expandedSource: """
         func tarai(_ x: Int, y yy: Int, z: Int) -> Int {
-            typealias Params = Pack<Int, Int, Int>
-            typealias Memo = Params.Cache.LRU<Int>
-            var tarai_cache: Memo = .init()
+            var tarai_cache: Pack<Int, Int, Int>.LRU<Int> = .init(maxCount: Int.max)
             func tarai(_ x: Int, y yy: Int, z: Int) -> Int {
-              let params = Params(x, yy, z)
-              if let result = tarai_cache[params] {
+              if let result = tarai_cache[.init(x, yy, z)] {
                 return result
               }
               let r = ___body(x, y: yy, z: z)
-              tarai_cache[params] = r
+              tarai_cache[.init(x, yy, z)] = r
               return r
             }
             func ___body(_ x: Int, y yy: Int, z: Int) -> Int {
@@ -124,16 +118,13 @@ final class InlineMemoizeTests: XCTestCase {
         """,
         expandedSource: """
         func tarai(_ x: Int, y yy: Int, z: Int) -> Int {
-            typealias Params = Pack<Int, Int, Int>
-            typealias Memo = Params.Cache.Standard<Int>
-            var tarai_cache: Memo = .init()
+            var tarai_cache: Pack<Int, Int, Int>.Standard<Int> = .init()
             func tarai(_ x: Int, y yy: Int, z: Int) -> Int {
-              let params = Params(x, yy, z)
-              if let result = tarai_cache[params] {
+              if let result = tarai_cache[.init(x, yy, z)] {
                 return result
               }
               let r = ___body(x, y: yy, z: z)
-              tarai_cache[params] = r
+              tarai_cache[.init(x, yy, z)] = r
               return r
             }
             func ___body(_ x: Int, y yy: Int, z: Int) -> Int {

@@ -68,15 +68,15 @@ extension Pack: _KeyCustomProtocol where repeat each T: Comparable {
   }
 }
 
-extension Pack {
-  
-}
+//extension Pack {
+//  
+//}
+
+//extension Pack {
+//  public struct Cache { }
+//}
 
 extension Pack {
-  public struct Cache { }
-}
-
-extension Pack.Cache {
   
   public typealias Starndard<Result> = [Pack: Result]
   where repeat each T: Hashable

@@ -70,14 +70,6 @@ extension Pack: _KeyCustomProtocol where repeat each T: Comparable {
 
 extension Pack {
   
-}
-
-extension Pack {
-  public struct Cache { }
-}
-
-extension Pack.Cache {
-  
   public typealias Standard<Result> = [Pack: Result]
   where repeat each T: Hashable
 
