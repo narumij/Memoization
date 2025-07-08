@@ -78,7 +78,7 @@ extension Pack: _KeyCustomProtocol where repeat each T: Comparable {
 
 extension Pack {
   
-  public typealias Starndard<Result> = [Pack: Result]
+  public typealias Standard<Result> = [Pack: Result]
   where repeat each T: Hashable
 
   public typealias Base<Result> = _MemoizeCacheBase<Pack, Result>

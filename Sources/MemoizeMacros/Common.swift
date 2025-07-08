@@ -257,6 +257,28 @@ func functionBodyN(_ funcDecl: FunctionDeclSyntax, initialize: String) -> [CodeB
   ]
 }
 
+func functionBodyNN(_ funcDecl: FunctionDeclSyntax, initialize: String) -> [CodeBlockItemSyntax] {
+
+  let cache: TokenSyntax = cacheName(funcDecl)
+  let arguments: LabeledExprListSyntax = paramsExpr(funcDecl)
+
+  let argumentsN: LabeledExprListSyntax = paramsNExpr(funcDecl)
+
+  return [
+    """
+    func \(funcDecl.name)\(funcDecl.signature){
+      \(cache)[.init(\(argumentsN)), fallBacking: ___body]
+    }
+    """,
+    """
+    func ___body\(funcDecl.signature)\(funcDecl.body)
+    """,
+    """
+    return \(funcDecl.name)(\(arguments))
+    """
+  ]
+}
+
 func paramsExpr(_ funcDecl: FunctionDeclSyntax) -> LabeledExprListSyntax {
   
   func expr(_ p: FunctionParameterSyntax) -> LabeledExprSyntax? {
@@ -320,6 +342,16 @@ func labelLessTypeElement(_ funcDecl: FunctionDeclSyntax) -> String {
   }.joined(separator: ", ")
 }
 
+func fullTypeElement(_ funcDecl: FunctionDeclSyntax) -> String {
+  (funcDecl.signature.parameterClause.parameters.map {
+    switch ($0.firstName.tokenKind, $0.firstName, $0.type) {
+    case (.wildcard,_,let type):
+      return "\(type)"
+    case (_,_,let type):
+      return "\(type)"
+    }
+  } + ["\(returnType(funcDecl))"]).joined(separator: ", ")
+}
 
 func storedCache(_ funcDecl: FunctionDeclSyntax,_ node: AttributeSyntax) -> DeclSyntax {
   let maxCount: String? = maxCount(node)
@@ -335,7 +367,7 @@ func cacheTypeName(_ funcDecl: FunctionDeclSyntax) -> TokenSyntax {
 }
 
 func cacheName(_ funcDecl: FunctionDeclSyntax) -> TokenSyntax {
-  "\(raw: funcDecl.name.text)_cache"
+  "___\(raw: funcDecl.name.text)_cache"
 }
 
 func paramsType(_ funcDecl: FunctionDeclSyntax) -> TypeSyntax {

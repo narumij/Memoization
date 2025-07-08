@@ -20,7 +20,7 @@ func B() {
 
 #if true
 
-#if true
+#if false
 @InlineCache
 //@InlineLRUCache(maxCount: Int.max)
 func tarai(x: Int, y: Int, z: Int) -> Int {
@@ -35,6 +35,29 @@ func tarai(x: Int, y: Int, z: Int) -> Int {
 }
 
 print("Tak 20 10 0 is \(tarai(x: 20, y: 10, z: 0))")
+#else
+
+nonisolated(unsafe) let ___tarai_memo: MemoizeCache<Int, Int, Int, Int>.Standard = .init()
+
+func tarai(x: Int, y: Int, z: Int) -> Int {
+  func tarai(x: Int, y: Int, z: Int) -> Int {
+    ___tarai_memo[.init(x,y,z), fallBacking: ___body]
+  }
+  func ___body(x: Int, y: Int, z: Int) -> Int {
+    if x <= y {
+      return y
+    } else {
+      return tarai(
+        x: tarai(x: x - 1, y: z, z: z),
+        y: tarai(x: y - 1, y: z, z: x),
+        z: tarai(x: z - 1, y: x, z: y))
+    }
+  }
+  return tarai(x: x, y: y, z: z)
+}
+
+print("Tak 20 10 0 is \(tarai(x: 20, y: 10, z: 0))")
+
 #endif
 
 #if false

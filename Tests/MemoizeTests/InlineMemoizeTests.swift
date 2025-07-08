@@ -28,14 +28,9 @@ final class InlineMemoizeTests: XCTestCase {
         """,
         expandedSource: """
           func test(_ a: Int) -> Int {
-              var test_cache: Pack<Int>.LRU<Int> = .init(maxCount: 0)
+              var test_cache: MemoizeCache<Int, Int>.LRU = .init(maxCount: 0)
               func test(_ a: Int) -> Int {
-                if let result = test_cache[.init(a)] {
-                  return result
-                }
-                let r = ___body(a)
-                test_cache[.init(a)] = r
-                return r
+                test_cache[.init(a), fallBacking: ___body]
               }
               func ___body(_ a: Int) -> Int {
                 if a == 10 {
@@ -71,14 +66,9 @@ final class InlineMemoizeTests: XCTestCase {
         """,
         expandedSource: """
         func tarai(_ x: Int, y yy: Int, z: Int) -> Int {
-            var tarai_cache: Pack<Int, Int, Int>.LRU<Int> = .init(maxCount: Int.max)
+            var tarai_cache: MemoizeCache<Int, Int, Int, Int>.LRU = .init(maxCount: Int.max)
             func tarai(_ x: Int, y yy: Int, z: Int) -> Int {
-              if let result = tarai_cache[.init(x, yy, z)] {
-                return result
-              }
-              let r = ___body(x, y: yy, z: z)
-              tarai_cache[.init(x, yy, z)] = r
-              return r
+              tarai_cache[.init(x, yy, z), fallBacking: ___body]
             }
             func ___body(_ x: Int, y yy: Int, z: Int) -> Int {
               if x <= yy {
@@ -118,14 +108,9 @@ final class InlineMemoizeTests: XCTestCase {
         """,
         expandedSource: """
         func tarai(_ x: Int, y yy: Int, z: Int) -> Int {
-            var tarai_cache: Pack<Int, Int, Int>.Standard<Int> = .init()
+            var tarai_cache: MemoizeCache<Int, Int, Int, Int>.Standard = .init()
             func tarai(_ x: Int, y yy: Int, z: Int) -> Int {
-              if let result = tarai_cache[.init(x, yy, z)] {
-                return result
-              }
-              let r = ___body(x, y: yy, z: z)
-              tarai_cache[.init(x, yy, z)] = r
-              return r
+              tarai_cache[.init(x, yy, z), fallBacking: ___body]
             }
             func ___body(_ x: Int, y yy: Int, z: Int) -> Int {
               if x <= yy {
@@ -147,3 +132,4 @@ final class InlineMemoizeTests: XCTestCase {
     #endif
   }
 }
+

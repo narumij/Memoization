@@ -28,17 +28,17 @@ public struct InlineMemoizeMacro: BodyMacro {
 func inlineBodyLRU(_ funcDecl: FunctionDeclSyntax, maxCount: String?) -> [CodeBlockItemSyntax] {
   [
     """
-    var \(cacheName(funcDecl)): Pack<\(raw: labelLessTypeElement(funcDecl))>.LRU<\(returnType(funcDecl))> = .init(maxCount: \(raw: maxCount ?? "Int.max"))
+    let \(cacheName(funcDecl)): MemoizeCache<\(raw: fullTypeElement(funcDecl))>.LRU = .init(maxCount: \(raw: maxCount ?? "Int.max"))
     """
   ] +
-  functionBodyN(funcDecl, initialize: "")
+  functionBodyNN(funcDecl, initialize: "")
 }
 
 func inlineBodyStandard(_ funcDecl: FunctionDeclSyntax) -> [CodeBlockItemSyntax] {
   [
     """
-    var \(cacheName(funcDecl)): Pack<\(raw: labelLessTypeElement(funcDecl))>.Standard<\(returnType(funcDecl))> = .init()
+    let \(cacheName(funcDecl)): MemoizeCache<\(raw: fullTypeElement(funcDecl))>.Standard = .init()
     """
   ] +
-  functionBodyN(funcDecl, initialize: "\(cacheTypeName(funcDecl)).Parameters")
+  functionBodyNN(funcDecl, initialize: "\(cacheTypeName(funcDecl)).Parameters")
 }
