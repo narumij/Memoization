@@ -21,8 +21,8 @@ func B() {
 #if true
 
 #if false
-@InlineCache
-//@InlineLRUCache(maxCount: Int.max)
+//@InlineCache
+@InlineLRUCache(maxCount: Int.max)
 func tarai(x: Int, y: Int, z: Int) -> Int {
   if x <= y {
     return y
@@ -35,8 +35,9 @@ func tarai(x: Int, y: Int, z: Int) -> Int {
 }
 
 print("Tak 20 10 0 is \(tarai(x: 20, y: 10, z: 0))")
-#else
+#endif
 
+#if false
 nonisolated(unsafe) let ___tarai_memo: MemoizeCache<Int, Int, Int, Int>.Standard = .init()
 
 func tarai(x: Int, y: Int, z: Int) -> Int {
@@ -60,8 +61,8 @@ print("Tak 20 10 0 is \(tarai(x: 20, y: 10, z: 0))")
 
 #endif
 
-#if false
-//@Cache(maxCount:150)
+#if true
+#if true
 @Cache
 //@LRUCache(maxCount: 150)
 func tarai(x: Int, y: Int, z: Int) -> Int {
@@ -74,6 +75,29 @@ func tarai(x: Int, y: Int, z: Int) -> Int {
       z: tarai(x: z - 1, y: x, z: y))
   }
 }
+#else
+let tarai_cache = Mutex(MemoizeCache<Int, Int, Int, Int>.Standard())
+func tarai(x: Int, y: Int, z: Int) -> Int {
+  tarai_cache.withLock { tarai_cache in
+    
+    func tarai(x: Int, y: Int, z: Int) -> Int {
+      tarai_cache[.init(x, y, z), fallBacking: ___body]
+    }
+    func ___body(x: Int, y: Int, z: Int) -> Int {
+      if x <= y {
+        return y
+      } else {
+        return tarai(
+          x: tarai(x: x - 1, y: y, z: z),
+          y: tarai(x: y - 1, y: z, z: x),
+          z: tarai(x: z - 1, y: x, z: y))
+      }
+    }
+    return tarai(x: x, y: y, z: z)
+    
+  }
+}
+#endif
 
 //tarai_cache.removeAll()
 

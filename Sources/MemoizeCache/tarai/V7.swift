@@ -40,7 +40,7 @@ enum Memoized_Ver7_Hashable {
   
   static func tarai(x: Int, y: Int, z: Int) -> Int {
 
-    let cache: Cache<Int,Int,Int,Int>.Standard = .init()
+    let cache: MemoizeCache<Int,Int,Int,Int>.Standard = .init()
 
     func tarai(x: Int, y: Int, z: Int) -> Int {
       cache[.init(x,y,z), fallBacking: body]

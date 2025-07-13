@@ -28,7 +28,7 @@ final class InlineMemoizeTests: XCTestCase {
         """,
         expandedSource: """
           func test(_ a: Int) -> Int {
-              var test_cache: MemoizeCache<Int, Int>.LRU = .init(maxCount: 0)
+              let test_cache: MemoizeCache<Int, Int>.LRU = .init(maxCount: 0)
               func test(_ a: Int) -> Int {
                 test_cache[.init(a), fallBacking: ___body]
               }
@@ -66,7 +66,7 @@ final class InlineMemoizeTests: XCTestCase {
         """,
         expandedSource: """
         func tarai(_ x: Int, y yy: Int, z: Int) -> Int {
-            var tarai_cache: MemoizeCache<Int, Int, Int, Int>.LRU = .init(maxCount: Int.max)
+            let tarai_cache: MemoizeCache<Int, Int, Int, Int>.LRU = .init(maxCount: Int.max)
             func tarai(_ x: Int, y yy: Int, z: Int) -> Int {
               tarai_cache[.init(x, yy, z), fallBacking: ___body]
             }
@@ -108,7 +108,7 @@ final class InlineMemoizeTests: XCTestCase {
         """,
         expandedSource: """
         func tarai(_ x: Int, y yy: Int, z: Int) -> Int {
-            var tarai_cache: MemoizeCache<Int, Int, Int, Int>.Standard = .init()
+            let tarai_cache: MemoizeCache<Int, Int, Int, Int>.Standard = .init()
             func tarai(_ x: Int, y yy: Int, z: Int) -> Int {
               tarai_cache[.init(x, yy, z), fallBacking: ___body]
             }
