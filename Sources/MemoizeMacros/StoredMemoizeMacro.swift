@@ -16,10 +16,15 @@ public struct StoredMemoizeMacro: BodyMacro & PeerMacro {
     }
     
     if context.lexicalContext.first?.is(FunctionDeclSyntax.self) == true {
+//      return [
+//        """
+//        #warning("Stored memoize macro can not use in function.")
+//        """
+//      ]
       return [
-        """
-        #warning("Stored memoize macro can not use in function.")
-        """
+    """
+    let \(cacheName(funcDecl)): MemoizeCache<\(raw: fullTypeElement(funcDecl))>.Standard = .init()
+    """
       ]
     }
 

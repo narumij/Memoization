@@ -102,7 +102,9 @@ func tarai(x: Int, y: Int, z: Int) -> Int {
 //tarai_cache.removeAll()
 
 print("Tak 20 10 0 is \(tarai(x: 20, y: 10, z: 0))")
-print(tarai_cache.withLock(\.info))
+tarai_cache.withLock {
+  print($0.info)
+}
 #endif
 
 #if false
