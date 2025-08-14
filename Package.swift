@@ -22,7 +22,7 @@ let package = Package(
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.0-latest"),
     .package(
       url: "https://github.com/narumij/swift-ac-collections",
-      revision: "aada19cc34ae40fba6be30dbdef145d5905b7ab0"),
+      revision: "dace23a1f414fc2d3855e97a7379d1a79f110b61"),
   ],
   targets: [
     // Targets are the basic building blocks of a package, defining a module or a test suite.
