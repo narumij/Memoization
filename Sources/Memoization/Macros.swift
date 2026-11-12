@@ -6,3 +6,9 @@
 @attached(body)
 @attached(peer, names: overloaded)
 public macro Memoize() = #externalMacro(module: "MemoizationMacros", type: "MemoizeMacro")
+
+/// `cache: inout some MemoCache<MemoizePack<引数型...>, 戻り値型>`を末尾に足した多重定義だけを生成する。
+///
+/// 元の関数には手を付けない。キャッシュは呼び出し側が渡す。
+@attached(peer, names: overloaded)
+public macro Memoizable() = #externalMacro(module: "MemoizationMacros", type: "MemoizeMacro")

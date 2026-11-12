@@ -123,3 +123,62 @@ struct CountingCacheCopyTests {
     #expect(cache.misses == 21)
   }
 }
+
+/// 比較はできるがハッシュはできない引数
+struct Point: Comparable {
+  var x: Int
+  var y: Int
+  static func < (a: Point, b: Point) -> Bool { (a.x, a.y) < (b.x, b.y) }
+}
+
+/// 比較だけでキーを探すキャッシュ
+struct ComparableCache<Key: Comparable, Value>: MemoCache {
+  var keys: [Key] = []
+  var values: [Value] = []
+  subscript(key: Key) -> Value? {
+    get {
+      guard let i = keys.firstIndex(where: { !($0 < key) && !(key < $0) }) else { return nil }
+      return values[i]
+    }
+    set {
+      guard let newValue else { return }
+      keys.append(key)
+      values.append(newValue)
+    }
+  }
+}
+
+@Memoizable
+func steps(_ p: Point) -> Int {
+  p.x == 0 || p.y == 0 ? 1 : steps(Point(x: p.x - 1, y: p.y)) + steps(Point(x: p.x, y: p.y - 1))
+}
+
+nonisolated(unsafe) var squareCalls = 0
+
+@Memoizable
+func square(_ n: Int) -> Int {
+  squareCalls += 1
+  return n * n
+}
+
+struct MemoizableTests {
+
+  @Test func originalIsUntouched() {
+    // 元の関数はメモ化されない
+    #expect(steps(Point(x: 4, y: 4)) == 70)
+  }
+
+  @Test func comparableOnlyArgument() {
+    var cache = Memo<Point, Int>.Cache<ComparableCache>()
+    #expect(steps(Point(x: 8, y: 8), cache: &cache) == 12_870)
+    #expect(cache.keys.count == 9 * 9 - 1)
+  }
+
+  @Test func nonRecursive() {
+    squareCalls = 0
+    var cache = Memo<Int, Int>.Cache<Dictionary>()
+    #expect(square(3, cache: &cache) == 9)
+    #expect(square(3, cache: &cache) == 9)
+    #expect(squareCalls == 1)
+  }
+}
