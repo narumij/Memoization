@@ -1,39 +1,39 @@
 # Memoization
 
-[swift-ac-memoize](https://github.com/narumij/swift-ac-memoize)で、DP問題のうちメモ化再帰問題用のマクロを作成しました。
+English | [日本語](README.ja.md)
 
-それ以外の用途も含めてカバーすることを目標としています。
+A macro that memoizes recursive functions, and small building blocks for swapping the memoization cache.
 
-## 利用の仕方
+The macro does not hide the cache. The cache lives either inside the function or wherever the caller puts it.
+No global variables or locks are involved, so isolation is left to the Swift compiler.
 
-SwiftPMで swift-ac-libraryを利用する場合は、
+## Installation
 
-以下をPackage.swift に追加してください。
+Add the following to your Package.swift:
 ```
 dependencies: [
   .package(url: "https://github.com/narumij/Memoization", branch: "main"),
 ],
 ```
 
-ビルドターゲットに以下を追加します。
+Add the following to your build target:
 
 ```
   dependencies: [
-    .product(name: "Memoize", package: "Memoization")
+    .product(name: "Memoization", package: "Memoization")
   ]
 ```
 
-ソースコードに以下を追加します。
+Add the following to your source code:
 ```
 import Memoization
 ```
 
-## 使い方
+## Usage
 
-再帰関数の先頭に@Memoizeを付け足すだけです。
+Just add @Memoize in front of a recursive function.
 
 ```swift
-
 @Memoize
 func tarai(x: Int, y: Int, z: Int) -> Int {
   if x <= y {
@@ -45,83 +45,139 @@ func tarai(x: Int, y: Int, z: Int) -> Int {
       z: tarai(x: z - 1, y: x, z: y))
   }
 }
-print("Tak 20 10 0 is \(tarai(x: 20, y: 10, z: 0))") // 出力: 20
+print("Tak 20 10 0 is \(tarai(x: 20, y: 10, z: 0))") // Output: 20
 ```
 
-上のソースコードは、おおよそ以下のように展開されます。
+The code above expands roughly as follows:
 ```swift
 func tarai(x: Int, y: Int, z: Int) -> Int {
-  
-    let maxCount: Int? = nil
-    func tarai(x: Int, y: Int, z: Int) -> Int {
-      let args = tarai_parameters(x: x, y: y, z: z)
-      if let result = tarai_cache[args] {
-        return result
-      }
-      let r = body(x: x, y: y, z: z)
-      if let maxCount, tarai_cache.count == maxCount {
-        tarai_cache.remove(at: tarai_cache.indices.randomElement()!)
-      }
-      tarai_cache[args] = r
+  var cache = Memo<Int, Int, Int, Int>.Cache<Dictionary>()
+  return tarai(x: x, y: y, z: z, cache: &cache)
+}
+
+func tarai(x: Int, y: Int, z: Int, cache: inout some MemoCache<MemoizePack<Int, Int, Int>, Int> & ~Copyable) -> Int {
+  func tarai(x: Int, y: Int, z: Int) -> Int {
+    let key = MemoizePack(x, y, z)
+    if let r = cache[key] {
       return r
     }
-    func body(x: Int, y: Int, z: Int) -> Int {
-      if x <= y {
-        return y
-      } else {
-        return tarai(
-          x: tarai(x: x - 1, y: y, z: z),
-          y: tarai(x: y - 1, y: z, z: x),
-          z: tarai(x: z - 1, y: x, z: y))
-      }
-    }
-    return tarai(x: x, y: y, z: z)
-}
-
-nonisolated(unsafe) var tarai_cache: [tarai_parameters: Int] = [:]
-
-struct tarai_parameters: Hashable {
-  init(x: Int, y: Int, z: Int) {
-    self.x = x
-    self.y = y
-    self.z = z
+    let r = body(x: x, y: y, z: z)
+    cache[key] = r
+    return r
   }
-  let x: Int
-  let y: Int
-  let z: Int
+  func body(x: Int, y: Int, z: Int) -> Int {
+    if x <= y {
+      return y
+    } else {
+      return tarai(
+        x: tarai(x: x - 1, y: y, z: z),
+        y: tarai(x: y - 1, y: z, z: x),
+        z: tarai(x: z - 1, y: x, z: y))
+    }
+  }
+  return tarai(x: x, y: y, z: z)
+}
+```
+
+The original function memoizes with a fresh dictionary on each call.
+An overload with a trailing `cache:` parameter is generated alongside it.
+
+## Keeping the cache outside
+
+Pass a cache to the `cache:` overload to reuse it across calls.
+
+```swift
+var cache = Memo<Int, Int, Int, Int>.Cache<Dictionary>()
+tarai(x: 20, y: 10, z: 0, cache: &cache)
+tarai(x: 24, y: 12, z: 0, cache: &cache)
+```
+
+`Memo<ArgumentTypes..., ResultType>.Cache<CacheType>` names the cache type.
+Write the cache type without type arguments; the key and value types are inferred.
+The cache in the example above is `[MemoizePack<Int, Int, Int>: Int]`.
+
+The cache can be a local variable, or a property of a struct or an actor.
+
+```swift
+actor Holder {
+  var cache = Memo<Int, Int, Int, Int>.Cache<Dictionary>()
+
+  func value(x: Int, y: Int, z: Int) -> Int {
+    tarai(x: x, y: y, z: z, cache: &cache)
+  }
+}
+```
+
+## Swapping the cache
+
+Any type that conforms to `MemoCache` can be used instead of `Dictionary`.
+
+```swift
+public protocol MemoCache<Key, Value>: ~Copyable {
+  associatedtype Key
+  associatedtype Value
+  subscript(key: Key) -> Value? { mutating get set }
+}
+```
+
+A type that already has `subscript(key:) -> Value?` conforms with an empty `extension`.
+
+```swift
+extension RedBlackTreeDictionary: MemoCache {}
+
+var cache = Memo<Int, Int, Int, Int>.Cache<RedBlackTreeDictionary>()
+```
+
+Noncopyable types work too.
+
+The cache type decides what the arguments must conform to.
+For `Dictionary`, every argument type must be `Hashable`.
+A mismatch is a compile error.
+
+## Generating only the cache-taking function
+
+`@Memoizable` generates only the `cache:` overload and leaves the original function as is.
+
+```swift
+@Memoizable
+func steps(_ p: Point) -> Int {
+  p.x == 0 || p.y == 0 ? 1 : steps(Point(x: p.x - 1, y: p.y)) + steps(Point(x: p.x, y: p.y - 1))
 }
 
-print("Tak 20 10 0 is \(tarai(x: 20, y: 10, z: 0))") // 出力: 20
+var cache = Memo<Point, Int>.Cache<RedBlackTreeDictionary>()
+steps(Point(x: 8, y: 8), cache: &cache)
 ```
 
-この場合、tarai_cacheとtarai_parametersが追加で生成されます。
+`@Memoize` builds a `Dictionary` inside the function, so its argument types must be `Hashable`.
+`@Memoizable` has no such restriction; the argument types only need to suit the cache you pass.
 
-キャッシュの生存期間はマクロ対象の関数のスコープによります。
+## Caching non-recursive functions
 
-キャッシュをクリアしたい場合は、
+Without a macro, use `value(for:orCompute:)`.
 
-```
-tarai_cache.removeAll()
-```
-としてください。
-
-キャッシュサイズを制限したい場合は、パラメータを追加してマクロを利用してください。
-
-```
-@Memoize(maxCount: 100)
+```swift
+var cache: [String: Int] = [:]
+let n = cache.value(for: "abc") { "abc".count }
 ```
 
-## 注意事項
+## Counting hits and misses
 
-- キャッシュサイズの上限の有無で、関数パラメータの各型が必要とする適合先が変わります。ナシの場合はHashable、アリの場合はComparableとなります。
+Wrap a cache in `CountingCache` to count hits and misses.
+For noncopyable caches, use `NoncopyableCountingCache`.
 
-- Comparableタイプのメモ化キャッシュは、CoWチェックすら省いて性能を絞り出しているため、コピーして利用した場合は未定義となります。
+```swift
+var cache = CountingCache(Memo<Int, Int, Int, Int>.Cache<Dictionary>())
+tarai(x: 20, y: 10, z: 0, cache: &cache)
+print(cache.hits, cache.misses)
+```
 
-- 対象の関数を@inlinableにはできません。必要な場合、@usableFromInlineにしてください。
+## Notes
 
-- 関数内関数にキャッシュ化アトリビュートを付与した場合、対象関数の内部に展開されます。
+- Works on functions that take at least one argument and return a value.
+- Not supported: async, throws, or generic functions.
+- Not supported: inout, some/any, or variadic parameters.
+- If a parameter's internal name is `cache`, it collides with the generated `cache:` parameter and fails to compile.
 
-## ライセンス
+## License
 
-このライブラリは [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) に基づいて配布しています。  
-
+This library is distributed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
