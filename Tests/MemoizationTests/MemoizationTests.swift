@@ -1,0 +1,125 @@
+import Memoization
+import Testing
+
+@Memoize
+func fib(_ n: Int) -> Int {
+  n < 2 ? n : fib(n - 1) + fib(n - 2)
+}
+
+@Memoize
+func tarai(x: Int, y: Int, z: Int) -> Int {
+  x <= y ? y : tarai(x: tarai(x: x - 1, y: y, z: z), y: tarai(x: y - 1, y: z, z: x), z: tarai(x: z - 1, y: x, z: y))
+}
+
+@Memoize
+func paths(from r: Int, _ c: Int) -> Int {
+  r == 0 || c == 0 ? 1 : paths(from: r - 1, c) + paths(from: r, c - 1)
+}
+
+struct Grid {
+  let walls: Set<[Int]>
+
+  @Memoize
+  func count(r: Int, c: Int) -> Int {
+    if walls.contains([r, c]) { return 0 }
+    if r == 0 && c == 0 { return 1 }
+    return (r > 0 ? count(r: r - 1, c: c) : 0) + (c > 0 ? count(r: r, c: c - 1) : 0)
+  }
+}
+
+actor Holder {
+  var cache = Memo<Int, Int>.Cache<Dictionary>()
+
+  func fibonacci(_ n: Int) -> Int {
+    fib(n, cache: &cache)
+  }
+}
+
+struct MemoizationTests {
+
+  @Test func singleArgument() {
+    #expect(fib(90) == 2_880_067_194_370_816_120)
+  }
+
+  @Test func multipleArguments() {
+    #expect(tarai(x: 24, y: 12, z: 0) == 24)
+  }
+
+  @Test func labelsAndWildcards() {
+    #expect(paths(from: 16, 16) == 601_080_390)
+  }
+
+  @Test func method() {
+    #expect(Grid(walls: [[1, 1]]).count(r: 2, c: 2) == 2)
+  }
+
+  @Test func externalCacheIsReused() {
+    var cache = Memo<Int, Int>.Cache<Dictionary>()
+    #expect(fib(30, cache: &cache) == 832_040)
+    #expect(cache.count == 31)
+    #expect(fib(10, cache: &cache) == 55)
+    #expect(cache.count == 31)
+  }
+
+  @Test func wrapperCountsHitsAndMisses() {
+    var cache = CountingCache(Memo<Int, Int>.Cache<Dictionary>())
+    #expect(fib(80, cache: &cache) == 23_416_728_348_467_685)
+    #expect(cache.misses == 81)
+    #expect(cache.hits == 78)
+  }
+
+  @Test func actorHeldCache() async {
+    let holder = Holder()
+    #expect(await holder.fibonacci(50) == 12_586_269_025)
+    #expect(await holder.cache.count == 51)
+  }
+
+  @Test func nonRecursiveCaching() {
+    var cache: [String: Int] = [:]
+    var computed = 0
+    for word in ["a", "bb", "a", "ccc", "bb"] {
+      _ = cache.value(for: word) {
+        computed += 1
+        return word.count
+      }
+    }
+    #expect(computed == 3)
+    #expect(cache == ["a": 1, "bb": 2, "ccc": 3])
+  }
+}
+
+/// コピーできないキャッシュ
+struct NoncopyableCache: MemoCache, ~Copyable {
+  var storage: [MemoizePack<Int>: Int] = [:]
+  subscript(key: MemoizePack<Int>) -> Int? {
+    get { storage[key] }
+    set { storage[key] = newValue }
+  }
+}
+
+struct NoncopyableCacheTests {
+
+  @Test func noncopyable() {
+    var cache = NoncopyableCache()
+    #expect(fib(80, cache: &cache) == 23_416_728_348_467_685)
+  }
+
+  @Test func countingNoncopyable() {
+    var cache = NoncopyableCountingCache(NoncopyableCache())
+    #expect(fib(80, cache: &cache) == 23_416_728_348_467_685)
+    #expect(cache.misses == 81)
+    #expect(cache.hits == 78)
+  }
+}
+
+struct CountingCacheCopyTests {
+
+  @Test func copyable() {
+    var cache = CountingCache(Memo<Int, Int>.Cache<Dictionary>())
+    _ = fib(10, cache: &cache)
+    let snapshot = cache
+    _ = fib(20, cache: &cache)
+    #expect(snapshot.misses == 11)
+    #expect(cache.misses == 21)
+  }
+}
