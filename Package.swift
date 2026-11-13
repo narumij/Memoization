@@ -8,7 +8,6 @@ let package = Package(
   platforms: [.macOS(.v14), .iOS(.v17), .tvOS(.v17), .watchOS(.v10), .macCatalyst(.v17)],
   products: [
     .library(name: "Memoization", targets: ["Memoization"]),
-    .executable(name: "MemoizationClient", targets: ["MemoizationClient"]),
   ],
   dependencies: [
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.0")
@@ -22,7 +21,6 @@ let package = Package(
       ]
     ),
     .target(name: "Memoization", dependencies: ["MemoizationMacros"]),
-    .executableTarget(name: "MemoizationClient", dependencies: ["Memoization"]),
     .testTarget(name: "MemoizationTests", dependencies: ["Memoization"]),
     .testTarget(
       name: "MemoizationMacrosTests",
