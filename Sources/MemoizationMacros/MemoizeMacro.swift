@@ -74,15 +74,15 @@ extension Function {
   }
 }
 
-/// マクロが必要とする関数宣言の部品。
+/// The parts of a function declaration that the macro needs.
 struct Function {
   let name: String
   let modifiers: String
-  /// 宣言そのままの引数（`x: Int`、`_ n: Int`など）
+  /// Parameters as declared (`x: Int`, `_ n: Int`, and so on)
   let parameters: [String]
-  /// 呼び出し用の引数（`x: x`、`n`など）
+  /// Arguments for a call (`x: x`, `n`, and so on)
   let arguments: [String]
-  /// 関数内での引数名
+  /// Parameter names used inside the function
   let names: [String]
   let keyTypes: [String]
   let returnType: String

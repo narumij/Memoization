@@ -1,6 +1,6 @@
-/// メモ化のキャッシュとして使える型。
+/// A type that can serve as a memoization cache.
 ///
-/// `Dictionary`はそのまま適合する。
+/// `Dictionary` conforms as is.
 public protocol MemoCache<Key, Value>: ~Copyable {
   associatedtype Key
   associatedtype Value
@@ -11,7 +11,7 @@ extension Dictionary: MemoCache {}
 
 extension MemoCache where Self: ~Copyable {
 
-  /// キャッシュにあればそれを返し、なければ計算して保存してから返す。
+  /// Returns the cached value if present; otherwise computes, stores, and returns it.
   @inlinable
   public mutating func value(for key: Key, orCompute compute: () throws -> Value) rethrows -> Value {
     if let v = self[key] { return v }

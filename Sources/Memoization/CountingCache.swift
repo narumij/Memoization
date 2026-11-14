@@ -1,4 +1,4 @@
-/// 任意のキャッシュにヒット数とミス数の計測を足すラッパー。
+/// A wrapper that adds hit and miss counting to any cache.
 public struct CountingCache<Storage: MemoCache>: MemoCache {
 
   public var storage: Storage
@@ -25,7 +25,7 @@ public struct CountingCache<Storage: MemoCache>: MemoCache {
   }
 }
 
-/// コピーできないキャッシュにヒット数とミス数の計測を足すラッパー。
+/// A wrapper that adds hit and miss counting to a noncopyable cache.
 public struct NoncopyableCountingCache<Storage: MemoCache & ~Copyable>: MemoCache, ~Copyable {
 
   public var storage: Storage

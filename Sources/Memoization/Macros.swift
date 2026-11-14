@@ -1,18 +1,19 @@
-/// 再帰関数をメモ化する。
+/// Memoizes a recursive function.
 ///
-/// 元の関数は関数内のローカル辞書でメモ化される。
-/// あわせて`cache: inout some MemoCache<キー, 戻り値型>`を末尾に足した
-/// 多重定義と、キャッシュの型の別名`関数名Cache<キャッシュの型>`が生成され、
-/// キャッシュの置き場所は呼び出し側が決められる。
+/// The original function is memoized with a local dictionary inside its body.
+/// The macro also generates an overload that takes an extra trailing
+/// `cache: inout some MemoCache<Key, Result>` parameter, and a cache type alias
+/// `<functionName>Cache<Storage>`, so callers can decide where the cache lives.
 ///
-/// キーは引数が1つならその型、2〜4つなら`MemoizePack2`〜`MemoizePack4`、5つ以上なら`MemoizePack`。
+/// The key is the argument type for one argument, `MemoizePack2`–`MemoizePack4` for two to four arguments,
+/// and `MemoizePack` for five or more.
 @attached(body)
 @attached(peer, names: overloaded, suffixed(Cache))
 public macro Memoize() = #externalMacro(module: "MemoizationMacros", type: "MemoizeMacro")
 
-/// `cache: inout some MemoCache<キー, 戻り値型>`を末尾に足した多重定義と、
-/// キャッシュの型の別名`関数名Cache<キャッシュの型>`だけを生成する。
+/// Generates only an overload with an extra trailing `cache: inout some MemoCache<Key, Result>` parameter
+/// and a cache type alias `<functionName>Cache<Storage>`.
 ///
-/// 元の関数には手を付けない。キャッシュは呼び出し側が渡す。
+/// The original function is left untouched. The caller passes the cache.
 @attached(peer, names: overloaded, suffixed(Cache))
 public macro Memoizable() = #externalMacro(module: "MemoizationMacros", type: "MemoizeMacro")
