@@ -78,3 +78,44 @@ extension MemoizePack: Hashable where repeat each T: Hashable {
 }
 
 extension MemoizePack: Sendable where repeat each T: Sendable { }
+
+public struct MemoizePack2<A, B> {
+  public var a: A
+  public var b: B
+  @inlinable public init(_ a: A, _ b: B) { (self.a, self.b) = (a, b) }
+}
+extension MemoizePack2: Equatable where A: Equatable, B: Equatable {}
+extension MemoizePack2: Hashable where A: Hashable, B: Hashable {}
+extension MemoizePack2: Comparable where A: Comparable, B: Comparable {
+  @inlinable public static func < (l: Self, r: Self) -> Bool { (l.a, l.b) < (r.a, r.b) }
+}
+extension MemoizePack2: Sendable where A: Sendable, B: Sendable {}
+
+public struct MemoizePack3<A, B, C> {
+  public var a: A
+  public var b: B
+  public var c: C
+  @inlinable public init(_ a: A, _ b: B, _ c: C) { (self.a, self.b, self.c) = (a, b, c) }
+}
+
+extension MemoizePack3: Equatable where A: Equatable, B: Equatable, C: Equatable {}
+extension MemoizePack3: Hashable where A: Hashable, B: Hashable, C: Hashable {}
+extension MemoizePack3: Comparable where A: Comparable, B: Comparable, C: Comparable {
+  @inlinable public static func < (l: Self, r: Self) -> Bool { (l.a, l.b, l.c) < (r.a, r.b, r.c) }
+}
+extension MemoizePack3: Sendable where A: Sendable, B: Sendable, C: Sendable {}
+
+public struct MemoizePack4<A, B, C, D> {
+  public var a: A
+  public var b: B
+  public var c: C
+  public var d: D
+  @inlinable public init(_ a: A, _ b: B, _ c: C, _ d: D) { (self.a, self.b, self.c, self.d) = (a, b, c, d) }
+}
+
+extension MemoizePack4: Equatable where A: Equatable, B: Equatable, C: Equatable, D: Equatable {}
+extension MemoizePack4: Hashable where A: Hashable, B: Hashable, C: Hashable, D: Hashable {}
+extension MemoizePack4: Comparable where A: Comparable, B: Comparable, C: Comparable, D: Comparable {
+  @inlinable public static func < (l: Self, r: Self) -> Bool { (l.a, l.b, l.c, l.d) < (r.a, r.b, r.c, r.d) }
+}
+extension MemoizePack4: Sendable where A: Sendable, B: Sendable, C: Sendable, D: Sendable {}
