@@ -20,11 +20,3 @@ extension MemoCache where Self: ~Copyable {
     return v
   }
 }
-
-/// 引数列と戻り値の組。`Memo<引数..., 戻り値>.Cache<Dictionary>`でキャッシュの型になる。
-///
-/// キャッシュの型は型引数なしで書く。KeyとValueは`where`節から推論される。
-public struct Memo<each T, Result> {
-  public typealias Cache<Storage: MemoCache & ~Copyable> = Storage
-  where Storage.Key == MemoizePack<repeat each T>, Storage.Value == Result
-}
