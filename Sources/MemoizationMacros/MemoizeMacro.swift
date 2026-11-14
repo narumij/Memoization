@@ -18,7 +18,7 @@ extension MemoizeMacro: BodyMacro {
   ) throws -> [CodeBlockItemSyntax] {
     let f = try Function(declaration)
     return [
-      "var cache = Memo<\(raw: f.keyTypes.joined(separator: ", ")), \(raw: f.returnType)>.Cache<Dictionary>()",
+      "var cache = \(raw: f.name)Cache<Dictionary>()",
       "return \(raw: f.name)(\(raw: (f.arguments + ["cache: &cache"]).joined(separator: ", ")))",
     ]
   }
@@ -33,14 +33,15 @@ extension MemoizeMacro: PeerMacro {
   ) throws -> [DeclSyntax] {
     let f = try Function(declaration)
     let arguments = f.arguments.joined(separator: ", ")
-    let cacheType = "some MemoCache<MemoizePack<\(f.keyTypes.joined(separator: ", "))>, \(f.returnType)> & ~Copyable"
+    let cacheType = "some MemoCache<\(f.keyType), \(f.returnType)> & ~Copyable"
     let outerParameters = (f.parameters + ["cache: inout \(cacheType)"]).joined(separator: ", ")
     let innerSignature = "(\(f.parameters.joined(separator: ", "))) -> \(f.returnType)"
     return [
+      "\(raw: f.modifiers)typealias \(raw: f.name)Cache<Storage: MemoCache & ~Copyable> = Storage where Storage.Key == \(raw: f.keyType), Storage.Value == \(raw: f.returnType)",
       """
       \(raw: f.modifiers)func \(raw: f.name)(\(raw: outerParameters)) -> \(raw: f.returnType) {
         func \(raw: f.name)\(raw: innerSignature) {
-          let key = MemoizePack(\(raw: f.names.joined(separator: ", ")))
+          let key = \(raw: f.keyExpression)
           if let r = cache[key] {
             return r
           }
@@ -53,6 +54,23 @@ extension MemoizeMacro: PeerMacro {
       }
       """
     ]
+  }
+}
+
+extension Function {
+  var keyType: String {
+    switch keyTypes.count {
+    case 1: keyTypes[0]
+    case 2...4: "MemoizePack\(keyTypes.count)<\(keyTypes.joined(separator: ", "))>"
+    default: "MemoizePack<\(keyTypes.joined(separator: ", "))>"
+    }
+  }
+  var keyExpression: String {
+    switch names.count {
+    case 1: names[0]
+    case 2...4: "MemoizePack\(names.count)(\(names.joined(separator: ", ")))"
+    default: "MemoizePack(\(names.joined(separator: ", ")))"
+    }
   }
 }
 

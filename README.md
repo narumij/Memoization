@@ -51,13 +51,16 @@ print("Tak 20 10 0 is \(tarai(x: 20, y: 10, z: 0))") // Output: 20
 The code above expands roughly as follows:
 ```swift
 func tarai(x: Int, y: Int, z: Int) -> Int {
-  var cache = Memo<Int, Int, Int, Int>.Cache<Dictionary>()
+  var cache = taraiCache<Dictionary>()
   return tarai(x: x, y: y, z: z, cache: &cache)
 }
 
-func tarai(x: Int, y: Int, z: Int, cache: inout some MemoCache<MemoizePack<Int, Int, Int>, Int> & ~Copyable) -> Int {
+typealias taraiCache<Storage: MemoCache & ~Copyable> = Storage
+  where Storage.Key == MemoizePack3<Int, Int, Int>, Storage.Value == Int
+
+func tarai(x: Int, y: Int, z: Int, cache: inout some MemoCache<MemoizePack3<Int, Int, Int>, Int> & ~Copyable) -> Int {
   func tarai(x: Int, y: Int, z: Int) -> Int {
-    let key = MemoizePack(x, y, z)
+    let key = MemoizePack3(x, y, z)
     if let r = cache[key] {
       return r
     }
@@ -80,27 +83,30 @@ func tarai(x: Int, y: Int, z: Int, cache: inout some MemoCache<MemoizePack<Int, 
 ```
 
 The original function memoizes with a fresh dictionary on each call.
-An overload with a trailing `cache:` parameter is generated alongside it.
+An overload with a trailing `cache:` parameter and a `taraiCache` type alias are generated alongside it.
 
 ## Keeping the cache outside
 
 Pass a cache to the `cache:` overload to reuse it across calls.
 
 ```swift
-var cache = Memo<Int, Int, Int, Int>.Cache<Dictionary>()
+var cache = taraiCache<Dictionary>()
 tarai(x: 20, y: 10, z: 0, cache: &cache)
 tarai(x: 24, y: 12, z: 0, cache: &cache)
 ```
 
-`Memo<ArgumentTypes..., ResultType>.Cache<CacheType>` names the cache type.
+`taraiCache<CacheType>` names the cache type.
 Write the cache type without type arguments; the key and value types are inferred.
-The cache in the example above is `[MemoizePack<Int, Int, Int>: Int]`.
+The cache in the example above is `[MemoizePack3<Int, Int, Int>: Int]`.
+
+The key depends on the number of arguments.
+One argument uses its own type, two to four use `MemoizePack2` to `MemoizePack4`, and five or more use `MemoizePack`.
 
 The cache can be a local variable, or a property of a struct or an actor.
 
 ```swift
 actor Holder {
-  var cache = Memo<Int, Int, Int, Int>.Cache<Dictionary>()
+  var cache = taraiCache<Dictionary>()
 
   func value(x: Int, y: Int, z: Int) -> Int {
     tarai(x: x, y: y, z: z, cache: &cache)
@@ -125,7 +131,7 @@ A type that already has `subscript(key:) -> Value?` conforms with an empty `exte
 ```swift
 extension RedBlackTreeDictionary: MemoCache {}
 
-var cache = Memo<Int, Int, Int, Int>.Cache<RedBlackTreeDictionary>()
+var cache = taraiCache<RedBlackTreeDictionary>()
 ```
 
 Noncopyable types work too.
@@ -144,7 +150,7 @@ func steps(_ p: Point) -> Int {
   p.x == 0 || p.y == 0 ? 1 : steps(Point(x: p.x - 1, y: p.y)) + steps(Point(x: p.x, y: p.y - 1))
 }
 
-var cache = Memo<Point, Int>.Cache<RedBlackTreeDictionary>()
+var cache = stepsCache<RedBlackTreeDictionary>()
 steps(Point(x: 8, y: 8), cache: &cache)
 ```
 
@@ -166,7 +172,7 @@ Wrap a cache in `CountingCache` to count hits and misses.
 For noncopyable caches, use `NoncopyableCountingCache`.
 
 ```swift
-var cache = CountingCache(Memo<Int, Int, Int, Int>.Cache<Dictionary>())
+var cache = CountingCache(taraiCache<Dictionary>())
 tarai(x: 20, y: 10, z: 0, cache: &cache)
 print(cache.hits, cache.misses)
 ```
@@ -177,6 +183,7 @@ print(cache.hits, cache.misses)
 - Not supported: async, throws, or generic functions.
 - Not supported: inout, some/any, or variadic parameters.
 - If a parameter's internal name is `cache`, it collides with the generated `cache:` parameter and fails to compile.
+- The macros also declare `<function name>Cache`. If that name is already in use, compilation fails.
 
 ## License
 

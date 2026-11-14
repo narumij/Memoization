@@ -17,13 +17,15 @@ final class MemoizeMacroTests: XCTestCase {
       """,
       expandedSource: """
         public func tarai(x: Int, _ y: Int, z zz: Int) -> Int {
-            var cache = Memo<Int, Int, Int, Int>.Cache<Dictionary>()
+            var cache = taraiCache<Dictionary>()
             return tarai(x: x, y, z: zz, cache: &cache)
         }
 
-        public func tarai(x: Int, _ y: Int, z zz: Int, cache: inout some MemoCache<MemoizePack<Int, Int, Int>, Int> & ~Copyable) -> Int {
+        public typealias taraiCache<Storage: MemoCache & ~Copyable> = Storage where Storage.Key == MemoizePack3<Int, Int, Int>, Storage.Value == Int
+
+        public func tarai(x: Int, _ y: Int, z zz: Int, cache: inout some MemoCache<MemoizePack3<Int, Int, Int>, Int> & ~Copyable) -> Int {
           func tarai(x: Int, _ y: Int, z zz: Int) -> Int {
-            let key = MemoizePack(x, y, zz)
+            let key = MemoizePack3(x, y, zz)
             if let r = cache[key] {
               return r
             }

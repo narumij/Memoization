@@ -51,13 +51,16 @@ print("Tak 20 10 0 is \(tarai(x: 20, y: 10, z: 0))") // 出力: 20
 上のソースコードは、おおよそ以下のように展開されます。
 ```swift
 func tarai(x: Int, y: Int, z: Int) -> Int {
-  var cache = Memo<Int, Int, Int, Int>.Cache<Dictionary>()
+  var cache = taraiCache<Dictionary>()
   return tarai(x: x, y: y, z: z, cache: &cache)
 }
 
-func tarai(x: Int, y: Int, z: Int, cache: inout some MemoCache<MemoizePack<Int, Int, Int>, Int> & ~Copyable) -> Int {
+typealias taraiCache<Storage: MemoCache & ~Copyable> = Storage
+  where Storage.Key == MemoizePack3<Int, Int, Int>, Storage.Value == Int
+
+func tarai(x: Int, y: Int, z: Int, cache: inout some MemoCache<MemoizePack3<Int, Int, Int>, Int> & ~Copyable) -> Int {
   func tarai(x: Int, y: Int, z: Int) -> Int {
-    let key = MemoizePack(x, y, z)
+    let key = MemoizePack3(x, y, z)
     if let r = cache[key] {
       return r
     }
@@ -80,27 +83,30 @@ func tarai(x: Int, y: Int, z: Int, cache: inout some MemoCache<MemoizePack<Int, 
 ```
 
 元の関数は、呼ぶたびに新しい辞書でメモ化します。
-あわせて、末尾に`cache:`を足した関数が生成されます。
+あわせて、末尾に`cache:`を足した関数と、キャッシュの型の別名`taraiCache`が生成されます。
 
 ## キャッシュを外に置く
 
 `cache:`付きの関数にキャッシュを渡すと、呼び出しをまたいでキャッシュを使い回せます。
 
 ```swift
-var cache = Memo<Int, Int, Int, Int>.Cache<Dictionary>()
+var cache = taraiCache<Dictionary>()
 tarai(x: 20, y: 10, z: 0, cache: &cache)
 tarai(x: 24, y: 12, z: 0, cache: &cache)
 ```
 
-`Memo<引数の型..., 戻り値の型>.Cache<キャッシュの型>`で、キャッシュの型が決まります。
+`taraiCache<キャッシュの型>`で、キャッシュの型が決まります。
 キャッシュの型は型引数なしで書きます。キーと値の型は推論されます。
-上の例のキャッシュは`[MemoizePack<Int, Int, Int>: Int]`です。
+上の例のキャッシュは`[MemoizePack3<Int, Int, Int>: Int]`です。
+
+キーは引数の数で決まります。
+引数が1つならその型、2〜4つなら`MemoizePack2`〜`MemoizePack4`、5つ以上なら`MemoizePack`です。
 
 キャッシュの置き場所は、ローカル変数でも、構造体やアクターのプロパティでもかまいません。
 
 ```swift
 actor Holder {
-  var cache = Memo<Int, Int, Int, Int>.Cache<Dictionary>()
+  var cache = taraiCache<Dictionary>()
 
   func value(x: Int, y: Int, z: Int) -> Int {
     tarai(x: x, y: y, z: z, cache: &cache)
@@ -125,7 +131,7 @@ public protocol MemoCache<Key, Value>: ~Copyable {
 ```swift
 extension RedBlackTreeDictionary: MemoCache {}
 
-var cache = Memo<Int, Int, Int, Int>.Cache<RedBlackTreeDictionary>()
+var cache = taraiCache<RedBlackTreeDictionary>()
 ```
 
 コピーできない型も使えます。
@@ -144,7 +150,7 @@ func steps(_ p: Point) -> Int {
   p.x == 0 || p.y == 0 ? 1 : steps(Point(x: p.x - 1, y: p.y)) + steps(Point(x: p.x, y: p.y - 1))
 }
 
-var cache = Memo<Point, Int>.Cache<RedBlackTreeDictionary>()
+var cache = stepsCache<RedBlackTreeDictionary>()
 steps(Point(x: 8, y: 8), cache: &cache)
 ```
 
@@ -166,7 +172,7 @@ let n = cache.value(for: "abc") { "abc".count }
 コピーできないキャッシュには`NoncopyableCountingCache`を使います。
 
 ```swift
-var cache = CountingCache(Memo<Int, Int, Int, Int>.Cache<Dictionary>())
+var cache = CountingCache(taraiCache<Dictionary>())
 tarai(x: 20, y: 10, z: 0, cache: &cache)
 print(cache.hits, cache.misses)
 ```
@@ -177,6 +183,7 @@ print(cache.hits, cache.misses)
 - async、throws、ジェネリックな関数には使えません。
 - inout、some/any、可変長の引数には使えません。
 - 関数の中での引数名が`cache`の場合は、生成される関数の`cache:`と衝突してコンパイルエラーになります。
+- マクロは`関数名Cache`という名前も宣言します。その名前がすでに使われているとコンパイルエラーになります。
 
 ## ライセンス
 

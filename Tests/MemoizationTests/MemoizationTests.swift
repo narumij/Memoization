@@ -28,7 +28,7 @@ struct Grid {
 }
 
 actor Holder {
-  var cache = Memo<Int, Int>.Cache<Dictionary>()
+  var cache = fibCache<Dictionary>()
 
   func fibonacci(_ n: Int) -> Int {
     fib(n, cache: &cache)
@@ -54,7 +54,7 @@ struct MemoizationTests {
   }
 
   @Test func externalCacheIsReused() {
-    var cache = Memo<Int, Int>.Cache<Dictionary>()
+    var cache = fibCache<Dictionary>()
     #expect(fib(30, cache: &cache) == 832_040)
     #expect(cache.count == 31)
     #expect(fib(10, cache: &cache) == 55)
@@ -62,7 +62,7 @@ struct MemoizationTests {
   }
 
   @Test func wrapperCountsHitsAndMisses() {
-    var cache = CountingCache(Memo<Int, Int>.Cache<Dictionary>())
+    var cache = CountingCache(fibCache<Dictionary>())
     #expect(fib(80, cache: &cache) == 23_416_728_348_467_685)
     #expect(cache.misses == 81)
     #expect(cache.hits == 78)
@@ -90,8 +90,8 @@ struct MemoizationTests {
 
 /// コピーできないキャッシュ
 struct NoncopyableCache: MemoCache, ~Copyable {
-  var storage: [MemoizePack<Int>: Int] = [:]
-  subscript(key: MemoizePack<Int>) -> Int? {
+  var storage: [Int: Int] = [:]
+  subscript(key: Int) -> Int? {
     get { storage[key] }
     set { storage[key] = newValue }
   }
@@ -115,7 +115,7 @@ struct NoncopyableCacheTests {
 struct CountingCacheCopyTests {
 
   @Test func copyable() {
-    var cache = CountingCache(Memo<Int, Int>.Cache<Dictionary>())
+    var cache = CountingCache(fibCache<Dictionary>())
     _ = fib(10, cache: &cache)
     let snapshot = cache
     _ = fib(20, cache: &cache)
@@ -169,16 +169,40 @@ struct MemoizableTests {
   }
 
   @Test func comparableOnlyArgument() {
-    var cache = Memo<Point, Int>.Cache<ComparableCache>()
+    var cache = stepsCache<ComparableCache>()
     #expect(steps(Point(x: 8, y: 8), cache: &cache) == 12_870)
     #expect(cache.keys.count == 9 * 9 - 1)
   }
 
   @Test func nonRecursive() {
     squareCalls = 0
-    var cache = Memo<Int, Int>.Cache<Dictionary>()
+    var cache = squareCache<Dictionary>()
     #expect(square(3, cache: &cache) == 9)
     #expect(square(3, cache: &cache) == 9)
     #expect(squareCalls == 1)
+  }
+}
+
+@Memoizable
+func sum4(_ a: Int, _ b: Int, _ c: Int, _ d: Int) -> Int { a + b + c + d }
+
+@Memoizable
+func sum5(_ a: Int, _ b: Int, _ c: Int, _ d: Int, _ e: Int) -> Int { a + b + c + d + e }
+
+struct KeyByArityTests {
+
+  @Test func keyTypes() {
+    #expect(fibCache<Dictionary>.self == [Int: Int].self)
+    #expect(pathsCache<Dictionary>.self == [MemoizePack2<Int, Int>: Int].self)
+    #expect(taraiCache<Dictionary>.self == [MemoizePack3<Int, Int, Int>: Int].self)
+    #expect(sum4Cache<Dictionary>.self == [MemoizePack4<Int, Int, Int, Int>: Int].self)
+    #expect(sum5Cache<Dictionary>.self == [MemoizePack<Int, Int, Int, Int, Int>: Int].self)
+  }
+
+  @Test func fourAndFiveArguments() {
+    var c4 = sum4Cache<Dictionary>()
+    var c5 = sum5Cache<Dictionary>()
+    #expect(sum4(1, 2, 3, 4, cache: &c4) == 10)
+    #expect(sum5(1, 2, 3, 4, 5, cache: &c5) == 15)
   }
 }
